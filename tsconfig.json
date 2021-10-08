@@ -1,0 +1,27 @@
+{
+  "compilerOptions": {
+    "target": "es2019",
+    "module": "commonjs",
+    "declaration": true,
+    "sourceMap": true,
+    "outDir": "dist",
+    "rootDir": "./src",
+    "strict": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "moduleResolution": "node",
+    "baseUrl": ".",
+    "paths": {
+      "#constants/*": ["src/constants/*"],
+      "#controllers/*": ["src/controllers/*"],
+      "#daos/*": ["src/daos/*"],
+      "#middlewares/*": ["src/middlewares/*"],
+      "#processes/*": ["src/processes/*"],
+      "#services/*": ["src/services/*"],
+      "#types_/*": ["src/types/*"],
+      "#utils/*": ["src/utils/*"],
+      "#models/*": ["src/models/*"],
+      "#validators/*": ["src/validators/*"],
+    },
+  },
+}
