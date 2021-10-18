@@ -12,6 +12,7 @@ error.log
 
 # ENV VARIABLES (WILL BE SET IN GITLAB CI + PRODUCTION SERVERS)
 .env
+.env.docker
 .env.staging
 .env.production
 SECURITY.md

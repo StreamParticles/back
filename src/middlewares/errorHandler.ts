@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/ban-ts-comment */
-import logger from "#services/logger";
 import { NextFunction, Request, Response } from "express";
+
+import logger from "#services/logger";
 
 const errorMiddleware = (
   err: Error,

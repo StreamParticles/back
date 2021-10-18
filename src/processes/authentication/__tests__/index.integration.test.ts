@@ -1,5 +1,4 @@
 import mongoose from "mongoose";
-import sinon, { SinonFakeTimers } from "sinon";
 
 import User from "#models/User";
 import { connectToDatabase } from "#services/mongoose";

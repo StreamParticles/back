@@ -17,8 +17,8 @@ connectToDatabase().then(() => {
 
   listen(server);
 
-  server.listen(ENV.ENTRYPOINT_API_PORT, async () => {
-    logger.info("Start listenning on port", { port: ENV.ENTRYPOINT_API_PORT });
+  server.listen(ENV.API_PORT, async () => {
+    logger.info("Start listenning on port", { port: ENV.API_PORT });
 
     await setLastRestart();
     const lastRestartTimestamp = await getLastRestart();

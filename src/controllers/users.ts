@@ -1,6 +1,5 @@
 import { MockedElrondTransaction } from "@streamparticles/lib";
 import { Request, Response } from "express";
-import mongoose from "mongoose";
 
 import * as blockchainInteractionProcesses from "#processes/blockchain-interaction";
 import * as blockchainMonitoringProcesses from "#processes/blockchain-monitoring";

@@ -1,7 +1,5 @@
 /* eslint-disable @typescript-eslint/ban-ts-comment */
-import express, { NextFunction, Request, Response } from "express";
-import fs from "fs";
-import path, { extname } from "path";
+import express from "express";
 
 require("express-async-errors");
 
@@ -11,37 +9,13 @@ import cors from "cors";
 import mongoSanitize from "express-mongo-sanitize";
 import rateLimit from "express-rate-limit";
 import helmet from "helmet";
-import multer from "multer";
 //@ts-ignore
 import xss from "xss-clean";
 
 import errorMiddleware from "#middlewares/errorHandler";
 import { requestLoggerMiddleware } from "#middlewares/requestLoggerMiddleware";
-import logger from "#services/logger";
 
 import routes from "./api";
-
-const storage = multer.diskStorage({
-  destination: function(req, file, cb) {
-    const dirPath = `../../medias/${req.params.mediaType}`;
-
-    fs.mkdirSync(dirPath, { recursive: true });
-    return cb(
-      null,
-      path.resolve(__dirname, `../../medias/${req.params.mediaType}`)
-    );
-  },
-  filename: function(req, file, cb) {
-    cb(
-      null,
-      `${req.params.mediaType}_${Date.now()}${extname(file.originalname)}`
-    );
-  },
-});
-
-const upload = multer({
-  storage: storage,
-}).array("file", 1);
 
 const app = express();
 
@@ -92,53 +66,7 @@ app.use(compression());
 // enable cors
 app.use(cors());
 
-app.use("/images", express.static(path.join("../medias/images")));
-app.use("/audios", express.static(path.join("../medias/audios")));
-
-app.use("/files/:fileType/file-name/:fileName", (req, res) => {
-  const { fileType, fileName } = req.params;
-
-  res.sendFile(path.join(`/files/${fileName}.${fileType}`), {
-    root: path.join("../medias"),
-  });
-});
-
-app.post("/uploads/:mediaType", async (req, res) => {
-  const filename = await new Promise((resolve, reject) => {
-    upload(req, res, function(error: unknown) {
-      if (error) {
-        logger.error("Error uploading media", { error });
-        reject(error);
-      }
-
-      const [file] = req.files as Express.Multer.File[];
-
-      resolve(file.filename);
-    });
-  });
-
-  res.send(filename);
-});
-
 app.use("/api", routes);
-
-if (
-  fs.existsSync(
-    path.join(__dirname, "../../streamParticles_front/build/index.html")
-  )
-) {
-  app.use(express.static(path.join(__dirname, "../../front/build")));
-
-  app.get("*", function(req, res) {
-    res.sendFile(path.join(__dirname, "../../front/build/index.html"));
-  });
-} else {
-  logger.warn("No front build directory found.");
-
-  app.use((req: Request, res: Response, next: NextFunction) => {
-    next(new Error("ROUTE_NOT_FOUND"));
-  });
-}
 
 app.use(errorMiddleware);
 

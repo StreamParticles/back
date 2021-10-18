@@ -293,7 +293,7 @@ describe("Donations Listings integration tests", () => {
       const donationRecap = await getDonationsRecap(user1.herotag);
 
       expect(donationRecap.allTime).toEqual(2.867987);
-      expect(donationRecap.lastMonth).toEqual(1.692987);
+      expect(donationRecap.lastMonth).toEqual(1.767987);
       expect(donationRecap.lastStream).toEqual(1.692987);
     });
   });

@@ -1,6 +1,7 @@
+import { Response } from "express";
+
 import * as moderationProcesses from "#processes/moderation";
 import { AuthenticatedRequest } from "#types_/express";
-import { Response } from "express";
 
 export interface AddBannedWordRequestBody {
   wordToAdd: string;

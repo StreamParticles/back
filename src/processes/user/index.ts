@@ -1,8 +1,7 @@
-import { ReturnCode } from "@elrondnetwork/erdjs/out";
 import { IftttConfig, UserType } from "@streamparticles/lib";
 import { Id } from "@streamparticles/lib/out/types/mongoose";
 
-import User, { UserMongooseDocument } from "#models/User";
+import User from "#models/User";
 import { json } from "#utils/mongoose";
 
 export const toggleIftttParticle = async (
