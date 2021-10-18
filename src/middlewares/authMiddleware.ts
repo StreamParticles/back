@@ -1,8 +1,8 @@
+import { ErrorKinds, UserAccountStatus } from "@streamparticles/lib";
 import { NextFunction, Response } from "express";
 
 import User from "#models/User";
 import { jwtPayload } from "#services/jwt";
-import { ErrorKinds, UserAccountStatus } from "@streamparticles/lib";
 import { AuthenticatedRequest } from "#types_/express";
 import { throwHttpError } from "#utils/http";
 

@@ -1,5 +1,6 @@
-import { ENV } from "#utils/env";
 import mongoose from "mongoose";
+
+import { ENV } from "#utils/env";
 
 import logger from "../logger";
 

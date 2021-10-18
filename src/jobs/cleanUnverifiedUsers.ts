@@ -1,8 +1,8 @@
+import { UserAccountStatus } from "@streamparticles/lib";
 import sub from "date-fns/sub";
 
 import User from "#models/User";
 import logger from "#services/logger";
-import { UserAccountStatus } from "@streamparticles/lib";
 
 export const cleanUnverifiedUserAccount = async (): Promise<void> => {
   logger.info({ data: "Start cleaning unverified accounts" });

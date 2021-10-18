@@ -1,7 +1,7 @@
+import { DonationBar } from "@streamparticles/lib";
 import { Response } from "express";
 
 import * as donationBarProcesses from "#processes/donationBar";
-import { DonationBar } from "@streamparticles/lib";
 import { AuthenticatedRequest } from "#types_/express";
 
 export interface DonationBarRequestParams {

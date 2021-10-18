@@ -1,7 +1,7 @@
+import { AlertVariation } from "@streamparticles/lib";
 import { Response } from "express";
 
 import * as alertProcesses from "#processes/alerts";
-import { AlertVariation } from "@streamparticles/lib";
 import { AuthenticatedRequest } from "#types_/express";
 
 export interface CreateAlertVariationRequestBody {

@@ -1,13 +1,18 @@
 import dotenv from "dotenv-defaults";
 import path from "path";
 
+import { environmentVariablesValidator } from "#validators/objectValidators/environmentVariables";
+
+const envFileName = () => {
+  return [".env.docker", process.env.NODE_ENV === "test" && "test"]
+    .filter(Boolean)
+    .join(".");
+};
+
 // Load environment config
 dotenv.config({
   encoding: "utf8",
-  path:
-    process.env.NODE_ENV === "test"
-      ? path.resolve(process.cwd(), ".env.test")
-      : path.resolve(process.cwd(), ".env"),
+  path: path.resolve(process.cwd(), envFileName()),
   defaults: path.resolve(process.cwd(), ".env.defaults"),
 });
 
@@ -26,6 +31,10 @@ const ENV: { [key: string]: string | boolean | number } = Object.entries(
 
   return { ...acc, [_key]: _value };
 }, {});
+
+const { error } = environmentVariablesValidator.validate(ENV);
+
+if (error) throw error;
 
 // Expose environment vars
 export { ENV };

@@ -1,9 +1,9 @@
+import { ErrorKinds } from "@streamparticles/lib";
 import { NextFunction, Request, Response } from "express";
 import { ObjectSchema } from "joi";
 import { isEmpty } from "lodash";
 
 import logger from "#services/logger";
-import { ErrorKinds } from "@streamparticles/lib";
 import { throwHttpError } from "#utils/http";
 
 export const createValidationMiddleware = <Req extends Request<{}, {}, {}, {}>>(

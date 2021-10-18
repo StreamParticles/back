@@ -1,5 +1,6 @@
-import Donation from "#models/Donation";
 import { DonationType, EventData, UserType } from "@streamparticles/lib";
+
+import Donation from "#models/Donation";
 
 export const createDonation = async (
   formattedData: EventData,

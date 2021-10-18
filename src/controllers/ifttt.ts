@@ -1,7 +1,7 @@
+import { IftttConfig } from "@streamparticles/lib";
 import { Response } from "express";
 
 import * as userProcesses from "#processes/user";
-import { IftttConfig } from "@streamparticles/lib";
 import { AuthenticatedRequest } from "#types_/express";
 
 export interface UpdateIftttRequestBody {
