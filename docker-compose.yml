@@ -1,24 +1,36 @@
 version: "3.8"
-x-server-config: &server-config
-  ports:
-    - "${API_PORT}:${API_PORT}"
+x-common-config: &common-config
   links:
     - mongo
     - redis-server
   volumes:
     - ./src:/usr/app/src
+x-server-config: &server-config
+  <<: *common-config
+  ports:
+    - "${API_PORT}:${API_PORT}"
 
 services:
   server:
     <<: *server-config
     build:
       context: .
-      target: "production"
+      target: "server"
+  multi-instances-server:
+    <<: *common-config
+    build:
+      context: .
+      target: "multi-instances-server"
+    ports:
+      - "${SERVER_1_API_PORT_E}:${SERVER_1_API_PORT_I}"
+      - "${SERVER_2_API_PORT_E}:${SERVER_2_API_PORT_I}"
+      - "${SERVER_3_API_PORT_E}:${SERVER_3_API_PORT_I}"
+      - "${SERVER_4_API_PORT_E}:${SERVER_4_API_PORT_I}"
   dev-server:
     <<: *server-config
     build:
       context: .
-      target: "development"
+      target: "dev-server"
   mongo:
     image: mongo:4.2
     ports:

@@ -16,3 +16,5 @@ error.log
 .env.staging
 .env.production
 SECURITY.md
+
+.DS_Store

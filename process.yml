@@ -1,0 +1,21 @@
+apps:
+  - script: "node ./dist/index.js"
+    exec_mode: "fork"
+    name: "api-server-0"
+    env:
+      API_PORT: 4000
+  - script: "node ./dist/index.js"
+    exec_mode: "fork"
+    name: "api-server-1"
+    env:
+      API_PORT: 4001
+  - script: "node ./dist/index.js"
+    exec_mode: "fork"
+    name: "api-server-2"
+    env:
+      API_PORT: 4002
+  - script: "node ./dist/index.js"
+    exec_mode: "fork"
+    name: "api-server-3"
+    env:
+      API_PORT: 4003
