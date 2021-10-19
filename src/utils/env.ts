@@ -11,11 +11,14 @@ const envFileName = () => {
 interface EnvVariables {
   NODE_ENV: string;
 
-  // AUTH SECURITY
-  JWT_PASSPHRASE: string;
+  // ENTRY_POINT
+  API_PORT?: number;
 
   // GATEWAY
-  MEDIA_GATEWAY: string;
+  MEDIAS_GATEWAY: string;
+
+  // AUTH SECURITY
+  JWT_PASSPHRASE: string;
 
   // MONGODB
   MONGODB_HOST: string;
@@ -33,10 +36,6 @@ interface EnvVariables {
   REDIS_PORT: string;
   REDIS_PWD?: string;
 
-  // ENTRY_POINT
-  API_PORT?: number;
-  UPLOAD_GATEWAY: string;
-
   // ELROND
   ELROND_GATEWAY_URL: string;
   ELROND_API_URL: string;
@@ -47,19 +46,19 @@ interface EnvVariables {
 
   // DEBUG
   ENABLE_CONSOLE_TRANSPORT?: boolean;
-
-  // MEDIAS
-  MEDIAS_FOLDER?: string;
 }
 
 const environmentVariablesValidator = Joi.object({
   NODE_ENV: Joi.string().required(),
 
-  // AUTH SECURITY
-  JWT_PASSPHRASE: Joi.string().required(),
+  // ENTRY_POINT
+  API_PORT: Joi.number().required(),
 
   // GATEWAY
-  MEDIA_GATEWAY: Joi.string().required(),
+  MEDIAS_GATEWAY: Joi.string().required(),
+
+  // AUTH SECURITY
+  JWT_PASSPHRASE: Joi.string().required(),
 
   // MONGODB
   MONGODB_HOST: Joi.string().required(),
@@ -77,10 +76,6 @@ const environmentVariablesValidator = Joi.object({
   REDIS_PORT: Joi.number().required(),
   REDIS_PWD: Joi.string(), //.required(),
 
-  // ENTRY_POINT
-  API_PORT: Joi.number().required(),
-  UPLOAD_GATEWAY: Joi.string().required(),
-
   // ELROND
   ELROND_GATEWAY_URL: Joi.string().required(),
   ELROND_API_URL: Joi.string().required(),
@@ -91,9 +86,6 @@ const environmentVariablesValidator = Joi.object({
 
   // DEBUG
   ENABLE_CONSOLE_TRANSPORT: Joi.boolean(),
-
-  // MEDIAS
-  MEDIAS_FOLDER: Joi.string(),
 }).unknown(true);
 
 // Load environment config
