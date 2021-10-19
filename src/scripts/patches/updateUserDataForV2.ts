@@ -13,6 +13,7 @@ import mongoose from "mongoose";
 import User from "#models/User";
 import logger from "#services/logger";
 import { connectToDatabase } from "#services/mongoose";
+import { ENV } from "#utils/env";
 
 const updateOverlays = (overlays: any[]): OverlayData[] => {
   return overlays.map((overlay) => {
@@ -48,7 +49,7 @@ const updateOverlays = (overlays: any[]): OverlayData[] => {
                               response: variation?.sound?.soundPath,
                               status: "done",
                               uid: variation?.sound?.soundPath,
-                              url: `http://localhost:4000/audios/${variation?.sound?.soundPath}`,
+                              url: `${ENV.MEDIA_GATEWAY}/${variation?.sound?.soundPath}`,
                             },
                           ],
                           delay: variation?.soundDelay,
@@ -63,7 +64,7 @@ const updateOverlays = (overlays: any[]): OverlayData[] => {
                               response: variation?.image?.imagePath,
                               status: "done",
                               uid: variation?.image?.imagePath,
-                              url: `http://localhost:4000/images/${variation?.image?.imagePath}`,
+                              url: `${ENV.MEDIA_GATEWAY}/${variation?.image?.imagePath}`,
                             },
                           ],
                           width: variation?.image?.width,
@@ -151,7 +152,7 @@ const updateOverlays = (overlays: any[]): OverlayData[] => {
                           response: overlay?.donationBar?.centerCursorPath,
                           status: "done",
                           uid: overlay?.donationBar?.centerCursorPath,
-                          url: `http://localhost:4000/images/${overlay?.donationBar?.centerCursorPath}`,
+                          url: `${ENV.MEDIA_GATEWAY}/${overlay?.donationBar?.centerCursorPath}`,
                         },
                       ],
                       scale: overlay?.donationBar?.centerCursorScale,
@@ -234,7 +235,7 @@ const updateOverlays = (overlays: any[]): OverlayData[] => {
                           status: "done",
                           uid:
                             overlay?.donationBar?.donationReaction?.soundPath,
-                          url: `http://localhost:4000/images/${overlay?.donationBar?.donationReaction?.soundPath}`,
+                          url: `${ENV.MEDIA_GATEWAY}/${overlay?.donationBar?.donationReaction?.soundPath}`,
                         },
                       ],
                     },

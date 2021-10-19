@@ -4,8 +4,8 @@ export const environmentVariablesValidator = Joi.object({
   // AUTH SECURITY
   JWT_PASSPHRASE: Joi.string().required(),
 
-  // DOCKER
-  IS_RUNNING_ON_DOCKER: Joi.boolean(),
+  // GATEWAY
+  MEDIA_GATEWAY: Joi.string().required(),
 
   // MONGODB
   MONGODB_HOST: Joi.string().required(),
