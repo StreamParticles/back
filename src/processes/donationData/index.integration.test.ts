@@ -1,13 +1,6 @@
 import mongoose from "mongoose";
 
-import User from "#models/User";
 import { connectToDatabase } from "#services/mongoose";
-
-import {
-  getDonationGoalSentAmount,
-  incrementDonationGoalSentAmount,
-  resetDonationGoal,
-} from "./index";
 
 describe("Moderation integration test", () => {
   beforeAll(async () => {
