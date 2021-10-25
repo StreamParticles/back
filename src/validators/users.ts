@@ -84,6 +84,23 @@ export const validateGetEgldPrice = createValidationMiddleware(Joi.object());
 export const validateGetDonationGoalSentAmount = createValidationMiddleware<
   AuthenticatedRequest
 >(Joi.object());
+
 export const validateResetDonationGoal = createValidationMiddleware<
+  AuthenticatedRequest
+>(Joi.object());
+
+export const validateUpdateUserWebhooks = createValidationMiddleware<
+  AuthenticatedRequest
+>(
+  Joi.object({
+    body: Joi.object({
+      webhooks: Joi.array()
+        .items(Joi.string())
+        .required(),
+    }),
+  })
+);
+
+export const validateGenerateNewApiKey = createValidationMiddleware<
   AuthenticatedRequest
 >(Joi.object());

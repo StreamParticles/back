@@ -1,5 +1,6 @@
 import { IftttConfig, UserType } from "@streamparticles/lib";
 import { Id } from "@streamparticles/lib/out/types/mongoose";
+import { nanoid } from "nanoid";
 
 import User from "#models/User";
 import { json } from "#utils/mongoose";
@@ -94,4 +95,21 @@ export const getViewerOnboardingData = async (
 
 export const getUserData = async (userId: Id): Promise<UserType | null> => {
   return json(User.findById(userId));
+};
+
+export const updateUserWebhooks = async (
+  userId: Id,
+  webhooks: string[]
+): Promise<void> => {
+  await User.updateOne(
+    { _id: userId },
+    { $set: { "integrations.webhooks": webhooks } }
+  );
+};
+
+export const generateNewApiKey = async (userId: Id): Promise<void> => {
+  await User.updateOne(
+    { _id: userId },
+    { $set: { "integrations.apiKey": nanoid(24) } }
+  );
 };

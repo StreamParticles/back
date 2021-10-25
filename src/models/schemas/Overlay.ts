@@ -1,7 +1,7 @@
 import { WidgetsKinds } from "@streamparticles/lib";
 import { Schema } from "mongoose";
 
-import { AlertVariationSchema } from "./widgets/AlertsSet";
+import { AlertVariationSchema } from "./widgets/AlertVariation";
 import { DonationBarSchema } from "./widgets/DonationBar";
 
 // DO NOT CHANGE MONGOOSE VERSION WITHOUT CHECKING THIS BELOW

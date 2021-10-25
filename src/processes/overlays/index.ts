@@ -1,7 +1,6 @@
 import {
   AlertsSetWidget,
   AlertsSetWidgetPosition,
-  BaseVariationType,
   DonationBarPosition,
   DonationBarWidget,
   ErrorKinds,
@@ -12,7 +11,6 @@ import {
   WidgetPosition,
   WidgetsKinds,
   WidgetType,
-  WithVariationsWidget,
 } from "@streamparticles/lib";
 import { Id } from "@streamparticles/lib/out/types/mongoose";
 import { keyBy, omit, pick, uniq } from "lodash";
@@ -24,17 +22,9 @@ import User from "#models/User";
 import { throwHttpError } from "#utils/http";
 import { merge } from "#utils/merge";
 import { isEqualId } from "#utils/mongoose";
+import { defaultVariationName, defaultWidgetName } from "#utils/overlays";
 
 const POSITION_FIELDS = ["top", "left", "width", "height"];
-
-const defaultWidgetNameMapper = {
-  [WidgetsKinds.ALERTS]: "Alerts set",
-  [WidgetsKinds.DONATION_BAR]: "Donation bar",
-  [WidgetsKinds.DONATIONS_LISTING]: "Donations Listings",
-  [WidgetsKinds.CUSTOM_WIDGET]: "Custom Widget",
-  [WidgetsKinds.NFTs]: "NFTs",
-  [WidgetsKinds.PARTICLES_FALLS]: "Particles Falls",
-};
 
 const randomColor = (): string => {
   const colorsCount = colors.length;
@@ -44,52 +34,6 @@ const randomColor = (): string => {
   const color = colors[randomIndex];
 
   return color.value;
-};
-
-const defaultWidgetName = (
-  overlay: OverlayData,
-  widgetKind: WidgetsKinds,
-  compelledName: string | null = null,
-  copyIter = 0
-): string => {
-  const base =
-    compelledName ||
-    `${defaultWidgetNameMapper[widgetKind]} ${overlay.widgets.length}`;
-
-  if (base.includes("copy")) {
-    const str = base.split(" copy ");
-
-    return `${str[0]} copy ${Number(str[1]) + 1}`;
-  }
-
-  const name = copyIter ? `${base} copy ${copyIter}` : base;
-
-  return overlay.widgets.some((widget) => name === widget.name)
-    ? defaultWidgetName(overlay, widgetKind, compelledName, copyIter + 1)
-    : name;
-};
-
-const defaultVariationName = (
-  widget: WithVariationsWidget<{} & BaseVariationType>,
-  widgetKind: WidgetsKinds,
-  compelledName: string | null = null,
-  copyIter = 0
-): string => {
-  const base =
-    compelledName ||
-    `${defaultWidgetNameMapper[widgetKind]} ${widget.variations.length}`;
-
-  if (base.includes("copy")) {
-    const str = base.split(" copy ");
-
-    return `${str[0]} copy ${Number(str[1]) + 1}`;
-  }
-
-  const name = copyIter ? `${base} copy ${copyIter}` : `${base}`;
-
-  return widget.variations.some((variation) => name === variation.name)
-    ? defaultVariationName(widget, widgetKind, compelledName, copyIter + 1)
-    : name;
 };
 
 export const getUserOverlay = async (
@@ -284,6 +228,7 @@ export const addOverlayWidget = async (
           name: defaultWidgetName(user.integrations.overlays[0], widgetKind),
         },
       },
+      $inc: { "integrations.overlays.$.widgetsCount": 1 },
     }
   );
 };
@@ -580,11 +525,7 @@ export const duplicateVariation = async (
             {
               ...variationToDuplicate,
               _id: mongoose.Types.ObjectId(),
-              name: defaultVariationName(
-                widget,
-                widget.kind,
-                variationToDuplicate?.name
-              ),
+              name: defaultVariationName(widget, variationToDuplicate?.name),
             },
           ],
         }

@@ -1,6 +1,7 @@
 import express from "express";
 
 import {
+  generateNewApiKey,
   getDonationGoalSentAmount,
   getEgldPrice,
   getUserData,
@@ -10,10 +11,12 @@ import {
   triggerFakeEvent,
   updateMinimumRequiredAmount,
   updateTinyAmountsWording,
+  updateUserWebhooks,
   updateViewerOnboardingData,
 } from "#controllers/users";
 import { authenticateMiddleware } from "#middlewares/authMiddleware";
 import {
+  validateGenerateNewApiKey,
   validateGetDonationGoalSentAmount,
   validateGetEgldPrice,
   validateGetUserData,
@@ -23,6 +26,7 @@ import {
   validateTriggerFakeEvent,
   validateUpdateMinimumRequiredAmount,
   validateUpdateTinyAmountsWording,
+  validateUpdateUserWebhooks,
   validateUpdateViewerOnboardingData,
 } from "#validators/users";
 
@@ -67,6 +71,18 @@ Router.route("/user/viewers-onboarding-data").post(
 Router.route("/user/viewers-onboarding-data/").get(
   validateGetViewerOnboardingData,
   getViewerOnboardingData
+);
+
+Router.route("/user/webhooks/").post(
+  authenticateMiddleware,
+  validateUpdateUserWebhooks,
+  updateUserWebhooks
+);
+
+Router.route("/user/apikey/").post(
+  authenticateMiddleware,
+  validateGenerateNewApiKey,
+  generateNewApiKey
 );
 
 Router.route("/egld-price").get(validateGetEgldPrice, getEgldPrice);

@@ -65,6 +65,8 @@ const UserSchema = new Schema<UserMongooseDocument, UserModel>(
         },
         required: false,
       },
+      apiKey: { type: String, required: false },
+      webhooks: { type: [String], required: false },
     },
     donationData: { type: DonationsDataSchema, required: false },
     moderation: {

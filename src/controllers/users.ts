@@ -143,3 +143,28 @@ export const getDonationGoalSentAmount = async (
 
   res.send({ sentAmount });
 };
+
+export interface UpdateUserWebhooksRequestBody {
+  webhooks: string[];
+}
+
+export const updateUserWebhooks = async (
+  req: AuthenticatedRequest<{}, {}, UpdateUserWebhooksRequestBody>,
+  res: Response
+): Promise<void> => {
+  await userProcesses.updateUserWebhooks(
+    req.userId as string,
+    req.body.webhooks
+  );
+
+  res.sendStatus(201);
+};
+
+export const generateNewApiKey = async (
+  req: AuthenticatedRequest,
+  res: Response
+): Promise<void> => {
+  await userProcesses.generateNewApiKey(req.userId as string);
+
+  res.sendStatus(201);
+};
