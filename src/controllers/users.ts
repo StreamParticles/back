@@ -134,11 +134,11 @@ export const resetDonationGoal = async (
 };
 
 export const getDonationGoalSentAmount = async (
-  req: AuthenticatedRequest,
+  req: Request<{ herotag: string }>,
   res: Response
 ): Promise<void> => {
   const sentAmount = await donationDataProcesses.getDonationGoalSentAmount(
-    req.userId as string
+    req.params.herotag
   );
 
   res.send({ sentAmount });

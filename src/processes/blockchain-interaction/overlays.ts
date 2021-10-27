@@ -7,7 +7,7 @@ export const triggerOverlaysEvent = async (
   user: UserType
 ): Promise<void> => {
   await publisher.publish(
-    "NEW_DONATION",
+    "DONATION",
     JSON.stringify({
       room: user.herotag,
       herotag: eventData.herotag,

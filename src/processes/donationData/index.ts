@@ -3,9 +3,9 @@ import { Id } from "@streamparticles/lib/out/types/mongoose";
 import User from "#models/User";
 
 export const getDonationGoalSentAmount = async (
-  userId: Id
+  herotag: string
 ): Promise<number> => {
-  const user = await User.findById(userId)
+  const user = await User.findByHerotag(herotag)
     .select({ donationData: true })
     .orFail(new Error("User not found"))
     .lean();

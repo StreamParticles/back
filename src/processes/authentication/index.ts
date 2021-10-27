@@ -116,9 +116,11 @@ export const authenticateUser = async (
   if (user.status !== UserAccountStatus.VERIFIED)
     return throwHttpError(ErrorKinds.ACCOUNT_WITH_VERIFICATION_PENDING);
 
-  const token = jwtSign(user.herotag, user._id);
+  const expiresIn = 60 * 60 * 48;
 
-  return { user, token: token, expiresIn: 60 * 60 * 4 };
+  const token = jwtSign(user.herotag, user._id, expiresIn);
+
+  return { user, token: token, expiresIn };
 };
 
 export const isProfileVerified = async (

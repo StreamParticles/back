@@ -87,12 +87,15 @@ Router.route("/user/apikey/").post(
 
 Router.route("/egld-price").get(validateGetEgldPrice, getEgldPrice);
 
-Router.route("/donation-goal-sent-amount/")
-  .get(
-    authenticateMiddleware,
-    validateGetDonationGoalSentAmount,
-    getDonationGoalSentAmount
-  )
-  .put(authenticateMiddleware, validateResetDonationGoal, resetDonationGoal);
+Router.route("/donation-goal-sent-amount/herotag/:herotag").get(
+  validateGetDonationGoalSentAmount,
+  getDonationGoalSentAmount
+);
+
+Router.route("/donation-goal-sent-amount/").put(
+  authenticateMiddleware,
+  validateResetDonationGoal,
+  resetDonationGoal
+);
 
 export default Router;

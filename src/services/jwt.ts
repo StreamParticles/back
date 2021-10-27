@@ -16,13 +16,17 @@ export interface JwtDecoded {
  * @param herotag {string} - The herotag to encode.
  * @returns {string} - The signed payload.
  */
-export const jwtSign = (herotag: string, userId: Id): string => {
+export const jwtSign = (
+  herotag: string,
+  userId: Id,
+  expiresIn: number
+): string => {
   if (!ENV.JWT_PASSPHRASE) {
     throw new Error("JWT: No passphrase has been set for 'JWT_PASSPHRASE");
   }
 
   return jwt.sign({ herotag: herotag, userId }, `${ENV.JWT_PASSPHRASE}`, {
-    expiresIn: 60 * 60 * 48,
+    expiresIn,
   });
 };
 

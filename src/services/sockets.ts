@@ -19,20 +19,20 @@ export const listen = (server: HttpServer): void => {
   });
 
   io.sockets.on("connection", (socket: Socket) => {
-    const room = socket?.handshake?.query?.streamerHerotag;
+    const room = socket?.handshake?.query?.herotag;
 
     if (room) {
       socket.join(normalizeHerotag(room as string));
     }
   });
 
-  subscriber.psubscribe("NEW_DONATION");
+  subscriber.psubscribe("DONATION");
 
   subscriber.on("pmessage", function(_, channel, stringifiedData) {
     try {
       const { room, ...parsedData } = JSON.parse(stringifiedData);
 
-      io.to(room).emit("newDonation", parsedData);
+      io.to(room).emit("donation", parsedData);
     } catch (error) {
       logger.error("Unparsable redis publish data", {
         error,

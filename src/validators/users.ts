@@ -83,7 +83,7 @@ export const validateGetEgldPrice = createValidationMiddleware(Joi.object());
 
 export const validateGetDonationGoalSentAmount = createValidationMiddleware<
   AuthenticatedRequest
->(Joi.object());
+>(Joi.object({ params: Joi.object({ herotag: Joi.string().required() }) }));
 
 export const validateResetDonationGoal = createValidationMiddleware<
   AuthenticatedRequest
