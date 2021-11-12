@@ -56,8 +56,8 @@ const cleanMediasFolder = async () => {
 
           if (widget.kind === WidgetsKinds.DONATION_BAR) {
             return (
-              ((widget as DonationBarWidget).data.cursor?.source?.[0] as any) // TO REMOVE AFTER sp/lib 0.1.18
-                ?.name === fileName
+              (widget as DonationBarWidget).data.cursor?.source?.[0]?.name ===
+              fileName
             );
           }
 

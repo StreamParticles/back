@@ -37,8 +37,8 @@ interface EnvVariables {
   REDIS_PWD?: string;
 
   // ELROND
-  ELROND_GATEWAY_URL: string;
-  ELROND_API_URL: string;
+  ELROND_PROXY_URL: string;
+  ELROND_TRANSACTIONS_API_URL: string;
   ELROND_HEROTAG_DOMAIN: string;
 
   // IFTTT
@@ -77,8 +77,8 @@ const environmentVariablesValidator = Joi.object({
   REDIS_PWD: Joi.string(), //.required(),
 
   // ELROND
-  ELROND_GATEWAY_URL: Joi.string().required(),
-  ELROND_API_URL: Joi.string().required(),
+  ELROND_PROXY_URL: Joi.string().required(),
+  ELROND_TRANSACTIONS_API_URL: Joi.string().required(),
   ELROND_HEROTAG_DOMAIN: Joi.string().required(),
 
   // IFTTT

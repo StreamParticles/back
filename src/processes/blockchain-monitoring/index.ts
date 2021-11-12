@@ -1,6 +1,5 @@
 import {
   ElrondTransaction,
-  ErrorKinds,
   LastSnapshotBalance,
   UserType,
 } from "@streamparticles/lib";
@@ -16,14 +15,12 @@ import {
   setAlreadyListennedTransactions,
   setNewBalance,
 } from "#services/redis";
-import { throwHttpError } from "#utils/http";
 import poll from "#utils/poll";
 
 import { reactToManyTransactions } from "../blockchain-interaction";
 
 export const filterNewIncomingTransactions = (
   transactions: ElrondTransaction[],
-  erdAddress: string,
   user: UserType,
   last30ListennedTransactions: string[],
   lastRestartTimestamp: number
@@ -47,7 +44,7 @@ export const filterNewIncomingTransactions = (
     ({ receiver, timestamp, hash, status, sender }: ElrondTransaction) => {
       return (
         !isSenderBanned(sender) &&
-        receiver === erdAddress &&
+        receiver === user.erdAddress &&
         isTimestampOk(timestamp) &&
         !last30ListennedTransactions.includes(hash) &&
         status === "success"
@@ -77,7 +74,6 @@ export const transactionsHandler = (
 
     const newTransactions = filterNewIncomingTransactions(
       transactions,
-      user.erdAddress,
       user,
       last30ListennedTransactions,
       lastRestartTimestamp
@@ -125,7 +121,7 @@ export const balanceHandler = (
     await poll(null, 10000, handleTransactions, 60000);
 };
 
-export const launchBlockchainMonitoring = async (
+export const monitorBlockChain = async (
   erdAddress: string,
   user: UserType
 ): Promise<string> => {
@@ -148,7 +144,7 @@ export const launchBlockchainMonitoring = async (
     return !currentUser?.isStreaming;
   };
 
-  poll(handleBalance, 2000, shouldStopPolling);
+  poll(handleBalance, 10000, shouldStopPolling);
 
   return user.herotag as string;
 };
@@ -168,32 +164,28 @@ export const toggleBlockchainMonitoring = async (
     { new: true }
   ).lean();
 
-  if (!user) return;
+  if (!user?.erdAddress) return;
 
-  if (isStreaming && user.integrations) {
-    if (!user?.erdAddress) return;
-
+  if (isStreaming) {
+    // Set updpated balance before monitoring the blockchain
     const newBalance = await getUpdatedBalance(user.erdAddress);
+    await setNewBalance(user.erdAddress, newBalance);
 
-    if (newBalance) {
-      await setNewBalance(user.erdAddress, newBalance);
+    logger.info("Starting monitoring blockchain for user", {
+      herotag: user.herotag,
+    });
 
-      logger.info("Lauching blockchain monitoring for user", {
-        herotag: user.herotag,
-      });
-      await launchBlockchainMonitoring(user.erdAddress, user);
-    } else {
-      logger.error(
-        `UNABLE_TO_LAUCH_BC_MONITORING - NO NEW BALANCE for ${user.herotag}`
-      );
-
-      return throwHttpError(ErrorKinds.UNABLE_TO_LAUCH_BC_MONITORING);
-    }
+    await monitorBlockChain(user.erdAddress, user);
   }
 
   return user;
 };
 
+/**
+ * This function restore the blockchain monitoring for a given user
+ * @param user UserType the user for who we want to monitor the blockchain
+ * @returns
+ */
 const resumeBlockchainMonitoringForUser = async (
   user: UserType
 ): Promise<string | null> => {
@@ -226,10 +218,7 @@ const resumeBlockchainMonitoringForUser = async (
     logger.info("Resuming blockchain monitoring for user", {
       herotag: user.herotag,
     });
-    const launchedUser = await launchBlockchainMonitoring(
-      user.erdAddress,
-      user
-    );
+    const launchedUser = await monitorBlockChain(user.erdAddress, user);
 
     return launchedUser;
   } catch (error) {
@@ -240,6 +229,11 @@ const resumeBlockchainMonitoringForUser = async (
   }
 };
 
+/**
+ * This function restore the blockchain monitoring for every users that have streaming activated
+ * Usefull when restarting the server
+ * @returns Promise<string[]>
+ */
 export const resumeBlockchainMonitoring = async (): Promise<string[]> => {
   const usersToPoll = await User.find({ isStreaming: true }).lean();
 

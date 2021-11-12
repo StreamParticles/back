@@ -1,14 +1,7 @@
 import { reactToNewTransaction } from "../";
 
-jest.mock("#utils/transactions", () => {
-  const module = jest.requireActual("#utils/transactions");
-
-  return {
-    ...module,
-    getHerotagFromErdAddress: jest.fn(),
-  };
-});
-import * as utilTransactions from "#utils/transactions";
+jest.mock("#services/elrond");
+import * as elrond from "#services/elrond";
 
 jest.mock("../ifttt");
 import * as ifttt from "../ifttt";
@@ -27,30 +20,23 @@ import * as overlays from "../overlays";
 
 describe("Blockchain interaction unit testing", () => {
   describe("reactToNewTransaction", () => {
-    const mockedUtilTransactions = utilTransactions as jest.Mocked<
-      typeof utilTransactions
-    >;
-
     const mockedIfttt = ifttt as jest.Mocked<typeof ifttt>;
     const mockedOverlays = overlays as jest.Mocked<typeof overlays>;
     const mockedDonationDao = donationDao as jest.Mocked<typeof donationDao>;
     const mockedDonationData = donationData as jest.Mocked<typeof donationData>;
-
-    beforeAll(() => {
-      mockedUtilTransactions.getHerotagFromErdAddress.mockResolvedValue(
-        "remdem"
-      );
-    });
-
-    afterAll(() => {
-      mockedUtilTransactions.getHerotagFromErdAddress.mockClear();
-    });
+    const mockedElrond = elrond as jest.Mocked<typeof elrond>;
 
     beforeEach(() => {
       mockedOverlays.triggerOverlaysEvent.mockClear();
       mockedIfttt.triggerIftttEvent.mockClear();
       mockedDonationData.incrementDonationGoalSentAmount.mockClear();
       mockedDonationDao.createDonation.mockClear();
+
+      mockedElrond.getUsername.mockResolvedValue("remdem");
+    });
+
+    afterEach(() => {
+      mockedElrond.getUsername.mockReset();
     });
 
     describe("when user has no ifttt particle data and no SE data", () => {
@@ -89,10 +75,15 @@ describe("Blockchain interaction unit testing", () => {
           "b7334dbf756d24a381ee49eac98b1be7993ee1bc8932c7d6c7b914c123bc56666",
         status: "success",
         value: "1000000000000000000",
+        sender:
+          "erd17s4tupfaju64mw3z472j7l0wau08zyzcqlz0ew5f5qh0luhm43zspvhgsm",
       });
 
       it("should call only trigger ifttt", async () => {
         const user = factories.user.build({
+          herotag: "streamparticles.elrond",
+          erdAddress:
+            "erd17s4tupfaju64mw3z472j7l0wau08zyzcqlz0ew5f5qh0luhm43zspvhgsm",
           integrations: {
             ifttt: {
               eventName: "Test",
@@ -128,9 +119,14 @@ describe("Blockchain interaction unit testing", () => {
           "b7334dbf756d24a381ee49eac98b1be7993ee1bc8932c7d6c7b914c123bc56666",
         status: "success",
         value: "1000000000000000000",
+        sender:
+          "erd17s4tupfaju64mw3z472j7l0wau08zyzcqlz0ew5f5qh0luhm43zspvhgsm",
       });
 
       const user = factories.user.build({
+        erdAddress:
+          "erd17s4tupfaju64mw3z472j7l0wau08zyzcqlz0ew5f5qh0luhm43zspvhgsm",
+        herotag: "streamparticles.elrond",
         integrations: {
           ifttt: undefined,
         },
@@ -164,9 +160,14 @@ describe("Blockchain interaction unit testing", () => {
           "b7334dbf756d24a381ee49eac98b1be7993ee1bc8932c7d6c7b914c123bc56666",
         status: "success",
         value: "10000000000000",
+        sender:
+          "erd17s4tupfaju64mw3z472j7l0wau08zyzcqlz0ew5f5qh0luhm43zspvhgsm",
       });
 
       const user = factories.user.build({
+        herotag: "streamparticles.elrond",
+        erdAddress:
+          "erd17s4tupfaju64mw3z472j7l0wau08zyzcqlz0ew5f5qh0luhm43zspvhgsm",
         integrations: {
           ifttt: undefined,
           tinyAmountWording: {

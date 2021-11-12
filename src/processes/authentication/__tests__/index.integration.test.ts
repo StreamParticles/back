@@ -1,23 +1,14 @@
+import { UserAccountStatus, UserType } from "@streamparticles/lib";
 import mongoose from "mongoose";
 
 import User from "#models/User";
+
+jest.mock("#services/elrond");
+import * as elrond from "#services/elrond";
 import { connectToDatabase } from "#services/mongoose";
-jest.mock("#utils/transactions", () => {
-  const module = jest.requireActual("#utils/transactions");
-
-  return {
-    ...module,
-    getErdAddressFromHerotag: jest.fn(),
-    normalizeHerotag: jest.fn(),
-  };
-});
-
-import { UserAccountStatus, UserType } from "@streamparticles/lib";
-
 import { getHashedPassword } from "#utils/auth";
 import factories from "#utils/tests";
 import { fakeHex } from "#utils/tests/fake";
-import * as transactions from "#utils/transactions";
 
 import {
   authenticateUser,
@@ -44,30 +35,14 @@ describe("Auth integration testing", () => {
   });
 
   describe("createUserAccount", () => {
-    describe("when data is not ok", () => {
-      it("should throw", async () => {
-        expect(createUserAccount({})).rejects.toThrow(
-          "MISSING_DATA_FOR_ACCOUNT_CREATION"
-        );
-      });
-    });
-
     describe("when data is ok", () => {
       const HEROTAG_TO_CREATE = "tocreate.elrond";
-      const mockedTransactions = transactions as jest.Mocked<
-        typeof transactions
-      >;
+      const mockedElrond = elrond as jest.Mocked<typeof elrond>;
 
       beforeAll(() => {
-        mockedTransactions.getErdAddressFromHerotag.mockResolvedValue(
-          HEROTAG_TO_CREATE
+        mockedElrond.getErdAddress.mockResolvedValue(
+          "erd17s4tupfaju64mw3z472j7l0wau08zyzcqlz0ew5f5qh0luhm43zspvhgsm"
         );
-
-        mockedTransactions.normalizeHerotag.mockReturnValue(HEROTAG_TO_CREATE);
-      });
-
-      afterAll(async () => {
-        mockedTransactions.getErdAddressFromHerotag.mockClear();
       });
 
       it("should create a user with status pending", async () => {
@@ -94,14 +69,6 @@ describe("Auth integration testing", () => {
   });
 
   describe("authenticateUser", () => {
-    describe("when data is not ok", () => {
-      it("should throw", async () => {
-        expect(authenticateUser({})).rejects.toThrow(
-          "FORM_MISSING_DATA_FOR_AUTHENTICATION"
-        );
-      });
-    });
-
     describe("when data is ok but herotag is not registered in db", () => {
       it("should throw", () => {
         expect(
@@ -113,7 +80,7 @@ describe("Auth integration testing", () => {
       });
     });
 
-    describe.skip("when data is ok, herotag is registered in db but password does not match with hash in db", () => {
+    describe("when data is ok, herotag is registered in db but password does not match with hash in db", () => {
       let user: UserType;
 
       beforeAll(async () => {
@@ -130,7 +97,7 @@ describe("Auth integration testing", () => {
       });
     });
 
-    describe.skip("when data is ok, herotag is registered in db, password does match with hash in db but account status is pending", () => {
+    describe("when data is ok, herotag is registered in db, password does match with hash in db but account status is pending", () => {
       let user: UserType;
       const password = "PASSWORD_TEST_8!";
 
@@ -155,20 +122,10 @@ describe("Auth integration testing", () => {
       let user: UserType;
       const password = "TESTOUILLE_87?";
 
-      const mockedTransactions = transactions as jest.Mocked<
-        typeof transactions
-      >;
-
       beforeAll(async () => {
         user = await factories.user.create({
           password: getHashedPassword(password),
         });
-
-        mockedTransactions.normalizeHerotag.mockReturnValue(user.herotag);
-      });
-
-      afterAll(() => {
-        mockedTransactions.getErdAddressFromHerotag.mockClear();
       });
 
       it("should resolve user and token data", async () => {
@@ -179,7 +136,7 @@ describe("Auth integration testing", () => {
 
         expect(result.user).toMatchObject(user);
         expect(result).toHaveProperty("token");
-        expect(result.expiresIn).toEqual(14400);
+        expect(result.expiresIn).toEqual(172800);
       });
     });
   });

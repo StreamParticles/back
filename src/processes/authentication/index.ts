@@ -7,7 +7,7 @@ import {
 
 import Donation from "#models/Donation";
 import User from "#models/User";
-import { getLastTransactions } from "#services/elrond";
+import { getErdAddress, getLastTransactions } from "#services/elrond";
 import { jwtSign } from "#services/jwt";
 import logger from "#services/logger";
 import {
@@ -16,15 +16,12 @@ import {
   setAlreadyListennedTransactions,
 } from "#services/redis";
 import { getHashedPassword, verifyPassword } from "#utils/auth";
-import { throwHttpError } from "#utils/http";
+import { throwError } from "#utils/http";
 import { json } from "#utils/mongoose";
 import { generateNewVerificationReference } from "#utils/nanoid";
 import poll from "#utils/poll";
 import { decodeDataFromTx } from "#utils/transactions";
-import {
-  getErdAddressFromHerotag,
-  normalizeHerotag,
-} from "#utils/transactions";
+import { normalizeHerotag } from "#utils/transactions";
 
 import { balanceHandler } from "../blockchain-monitoring";
 
@@ -32,37 +29,33 @@ const STREAM_PARTICLES_ERD_ADDRESS =
   "erd17s4tupfaju64mw3z472j7l0wau08zyzcqlz0ew5f5qh0luhm43zspvhgsm";
 
 export interface UserAccountCreationData {
-  herotag?: string;
-  password?: string;
-  confirm?: string;
+  herotag: string;
+  password: string;
+  confirm: string;
 }
 
 export interface UserAuthenticationData {
-  herotag?: string;
-  password?: string;
+  herotag: string;
+  password: string;
 }
 
 export const validateAccountCreationData = async (
-  data?: UserAccountCreationData
+  data: UserAccountCreationData
 ): Promise<{ herotag: string; erdAddress: string }> => {
-  if (!data || !data.herotag || !data.password || !data.confirm)
-    return throwHttpError(ErrorKinds.MISSING_DATA_FOR_ACCOUNT_CREATION);
-
   if (data.password !== data.confirm)
-    return throwHttpError(ErrorKinds.PASSWORD_AND_CONFIRM_NOT_MATCHING);
+    return throwError(ErrorKinds.PASSWORD_AND_CONFIRM_NOT_MATCHING);
 
   const normalized = normalizeHerotag(data.herotag as string);
-  const erdAddress = await getErdAddressFromHerotag(normalized);
+  const erdAddress = await getErdAddress(normalized);
 
-  if (!erdAddress)
-    return throwHttpError(ErrorKinds.COULD_NOT_FIND_HETOTAG_ON_DNS);
+  if (!erdAddress) return throwError(ErrorKinds.COULD_NOT_FIND_HETOTAG_ON_DNS);
 
   if (
     await User.exists({
       herotag: normalized,
     })
   )
-    return throwHttpError(ErrorKinds.ALREADY_REGISTERED_USER);
+    return throwError(ErrorKinds.ALREADY_REGISTERED_USER);
 
   return { herotag: normalized, erdAddress };
 };
@@ -70,8 +63,7 @@ export const validateAccountCreationData = async (
 export const createUserAccount = async (
   data: UserAccountCreationData
 ): Promise<{
-  hasBeenSuccessfullyCreated: boolean;
-  herotag: string | undefined;
+  herotag: string;
 }> => {
   const { erdAddress, herotag } = await validateAccountCreationData(data);
   const verificationReference = await generateNewVerificationReference();
@@ -86,14 +78,7 @@ export const createUserAccount = async (
     status: UserAccountStatus.PENDING_VERIFICATION,
   });
 
-  return { hasBeenSuccessfullyCreated: true, herotag: user.herotag };
-};
-
-export const validateAuthenticationData = (
-  data?: UserAccountCreationData
-): void => {
-  if (!data || !data.herotag || !data.password)
-    return throwHttpError(ErrorKinds.FORM_MISSING_DATA_FOR_AUTHENTICATION);
+  return { herotag: user.herotag };
 };
 
 export const authenticateUser = async (
@@ -103,18 +88,16 @@ export const authenticateUser = async (
   token: string;
   expiresIn: number;
 }> => {
-  await validateAuthenticationData(data);
-
   const user = (await json(
     User.findByHerotag(data.herotag as string)
   )) as UserType;
 
-  if (!user) return throwHttpError(ErrorKinds.NOT_REGISTERED_HEROTAG);
+  if (!user) return throwError(ErrorKinds.NOT_REGISTERED_HEROTAG);
 
   verifyPassword(data.password as string, user.password as string);
 
   if (user.status !== UserAccountStatus.VERIFIED)
-    return throwHttpError(ErrorKinds.ACCOUNT_WITH_VERIFICATION_PENDING);
+    return throwError(ErrorKinds.ACCOUNT_WITH_VERIFICATION_PENDING);
 
   const expiresIn = 60 * 60 * 48;
 
@@ -166,7 +149,7 @@ export const isHerotagValid = async (
     .select({ herotag: true })
     .lean();
 
-  if (!user) return throwHttpError(ErrorKinds.NOT_REGISTERED_HEROTAG);
+  if (!user) return throwError(ErrorKinds.NOT_REGISTERED_HEROTAG);
 
   return { herotag: user.herotag };
 };
@@ -175,10 +158,10 @@ export const validatePasswordEditionData = async (
   data?: UserAccountCreationData
 ): Promise<void> => {
   if (!data || !data.herotag || !data.password || !data.confirm)
-    return throwHttpError(ErrorKinds.MISSING_DATA_FOR_ACCOUNT_CREATION);
+    return throwError(ErrorKinds.MISSING_DATA_FOR_ACCOUNT_CREATION);
 
   if (data.password !== data.confirm)
-    return throwHttpError(ErrorKinds.PASSWORD_AND_CONFIRM_NOT_MATCHING);
+    return throwError(ErrorKinds.PASSWORD_AND_CONFIRM_NOT_MATCHING);
 
   await isHerotagValid(data.herotag);
 };
@@ -209,7 +192,7 @@ export const deleteAccount = async (
 ): Promise<void> => {
   const user: UserType | null = await User.findById(userId).lean();
 
-  if (!user) return throwHttpError(ErrorKinds.NOT_REGISTERED_HEROTAG);
+  if (!user) return throwError(ErrorKinds.NOT_REGISTERED_HEROTAG);
 
   await verifyPassword(password as string, user.password as string);
 

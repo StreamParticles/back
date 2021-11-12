@@ -19,7 +19,7 @@ import { nanoid } from "nanoid";
 
 import { colors } from "#constants/colors";
 import User from "#models/User";
-import { throwHttpError } from "#utils/http";
+import { error, throwError } from "#utils/http";
 import { merge } from "#utils/merge";
 import { isEqualId } from "#utils/mongoose";
 import { defaultVariationName, defaultWidgetName } from "#utils/overlays";
@@ -47,7 +47,7 @@ export const getUserOverlay = async (
 
   const overlay = user?.integrations?.overlays?.[0];
 
-  if (!overlay) return throwHttpError(ErrorKinds.OVERLAY_NOT_FOUND);
+  if (!overlay) return throwError(ErrorKinds.OVERLAY_NOT_FOUND);
 
   return overlay;
 };
@@ -63,7 +63,7 @@ export const getUserOverlayByGeneratedLink = async (
 
   const overlay = user?.integrations?.overlays?.[0];
 
-  if (!overlay) return throwHttpError(ErrorKinds.OVERLAY_NOT_FOUND);
+  if (!overlay) return throwError(ErrorKinds.OVERLAY_NOT_FOUND);
 
   return overlay;
 };
@@ -137,12 +137,12 @@ export const getOverlayFonts = async (
     "integrations.overlays.generatedLink": overlayLink,
   })
     .select({ "integrations.overlays.$": true })
-    .orFail(new Error(ErrorKinds.USER_NOT_FOUND))
+    .orFail(error(ErrorKinds.USER_NOT_FOUND))
     .lean();
 
   const overlay = user?.integrations?.overlays?.[0];
 
-  if (!overlay) throw new Error("OVERLAY_NOT_FOUND");
+  if (!overlay) return throwError(ErrorKinds.OVERLAY_NOT_FOUND);
 
   const fonts = overlay.widgets
     .flatMap((widget) => {
@@ -167,12 +167,12 @@ export const getOverlayWidgets = async (overlayId: Id): Promise<Widget[]> => {
     "integrations.overlays._id": overlayId,
   })
     .select({ "integrations.overlays.$": true })
-    .orFail(new Error(ErrorKinds.USER_NOT_FOUND))
+    .orFail(error(ErrorKinds.USER_NOT_FOUND))
     .lean();
 
   const [overlay] = user?.integrations?.overlays || [];
 
-  if (!overlay) return throwHttpError(ErrorKinds.OVERLAY_NOT_FOUND);
+  if (!overlay) return throwError(ErrorKinds.OVERLAY_NOT_FOUND);
 
   return overlay.widgets;
 };
@@ -185,18 +185,18 @@ export const getOverlayWidget = async (
     "integrations.overlays._id": overlayId,
   })
     .select({ "integrations.overlays.$": true })
-    .orFail(new Error(ErrorKinds.USER_NOT_FOUND))
+    .orFail(error(ErrorKinds.USER_NOT_FOUND))
     .lean();
 
   const [overlay] = user?.integrations?.overlays || [];
 
-  if (!overlay) return throwHttpError(ErrorKinds.OVERLAY_NOT_FOUND);
+  if (!overlay) return throwError(ErrorKinds.OVERLAY_NOT_FOUND);
 
   const widget = overlay.widgets.find((widget) =>
     isEqualId(String(widget._id), String(widgetId))
   );
 
-  if (!widget) return throwHttpError(ErrorKinds.WIDGET_NOT_FOUND);
+  if (!widget) return throwError(ErrorKinds.WIDGET_NOT_FOUND);
 
   return widget;
 };
@@ -211,11 +211,11 @@ export const addOverlayWidget = async (
     "integrations.overlays._id": overlayId,
   })
     .select({ "integrations.overlays.$": true })
-    .orFail(new Error(ErrorKinds.USER_NOT_FOUND))
+    .orFail(error(ErrorKinds.USER_NOT_FOUND))
     .lean();
 
   if (!user?.integrations?.overlays?.[0])
-    return throwHttpError(ErrorKinds.OVERLAY_NOT_FOUND);
+    return throwError(ErrorKinds.OVERLAY_NOT_FOUND);
 
   await User.updateOne(
     {
@@ -244,12 +244,12 @@ export const updateWidgetName = async (
     "integrations.overlays._id": overlayId,
   })
     .select({ "integrations.overlays.$": true })
-    .orFail(new Error(ErrorKinds.USER_NOT_FOUND))
+    .orFail(error(ErrorKinds.USER_NOT_FOUND))
     .lean();
 
   const [overlayToUpdate] = user?.integrations?.overlays || [];
 
-  if (!overlayToUpdate) return throwHttpError(ErrorKinds.OVERLAY_NOT_FOUND);
+  if (!overlayToUpdate) return throwError(ErrorKinds.OVERLAY_NOT_FOUND);
 
   const eventuallyUpdateWidget = (widget: Widget) =>
     isEqualId(widgetId, widget._id)
@@ -313,7 +313,7 @@ const updateDonationBarPositions = (
   const position = widgetPosition.data;
 
   const data = {
-    ...merge(widget.data, pick(position, POSITION_FIELDS) as any),
+    ...merge(widget.data, pick(position, POSITION_FIELDS)),
     ...(widget.data.donationBarItemPosition && {
       donationBarItemPosition: position?.donationBarItemPosition,
     }),
@@ -357,11 +357,11 @@ export const updateOverlayWidgetsPositions = async (
     "integrations.overlays._id": overlayId,
   })
     .select({ "integrations.overlays.$": true })
-    .orFail(new Error(ErrorKinds.USER_NOT_FOUND))
+    .orFail(error(ErrorKinds.USER_NOT_FOUND))
     .lean();
 
   if (!user?.integrations?.overlays?.[0])
-    return throwHttpError(ErrorKinds.OVERLAY_NOT_FOUND);
+    return throwError(ErrorKinds.OVERLAY_NOT_FOUND);
 
   const [overlay] = user?.integrations?.overlays;
 
@@ -397,12 +397,12 @@ export const deleteOverlayWidget = async (
     "integrations.overlays._id": overlayId,
   })
     .select({ "integrations.overlays.$": true })
-    .orFail(new Error(ErrorKinds.USER_NOT_FOUND))
+    .orFail(error(ErrorKinds.USER_NOT_FOUND))
     .lean();
 
   const [overlayToUpdate] = user?.integrations?.overlays || [];
 
-  if (!overlayToUpdate) return throwHttpError(ErrorKinds.OVERLAY_NOT_FOUND);
+  if (!overlayToUpdate) return throwError(ErrorKinds.OVERLAY_NOT_FOUND);
 
   const updatedWidgets = overlayToUpdate.widgets.filter(
     (widget) => !isEqualId(widget._id, widgetId)
@@ -429,20 +429,20 @@ export const duplicateWidget = async (
 ): Promise<void> => {
   const user = await User.findById(userId)
     .select({ "integrations.overlays": true })
-    .orFail(new Error(ErrorKinds.USER_NOT_FOUND))
+    .orFail(error(ErrorKinds.USER_NOT_FOUND))
     .lean();
 
   const sourceOverlay = user.integrations?.overlays?.find(({ _id }) =>
     isEqualId(_id, overlayId)
   );
 
-  if (!sourceOverlay) return throwHttpError(ErrorKinds.OVERLAY_NOT_FOUND);
+  if (!sourceOverlay) return throwError(ErrorKinds.OVERLAY_NOT_FOUND);
 
   const destinationOverlay = user.integrations?.overlays?.find(({ _id }) =>
     isEqualId(_id, destOverlay)
   );
 
-  if (!destinationOverlay) return throwHttpError(ErrorKinds.OVERLAY_NOT_FOUND);
+  if (!destinationOverlay) return throwError(ErrorKinds.OVERLAY_NOT_FOUND);
 
   const widgetToDuplicate = sourceOverlay.widgets.find(({ _id }) =>
     isEqualId(_id, widgetId)
@@ -486,35 +486,34 @@ export const duplicateVariation = async (
 ): Promise<void> => {
   const user = await User.findById(userId)
     .select({ "integrations.overlays": true })
-    .orFail(new Error(ErrorKinds.USER_NOT_FOUND))
+    .orFail(error(ErrorKinds.USER_NOT_FOUND))
     .lean();
 
   const sourceOverlay = user.integrations?.overlays?.find(({ _id }) =>
     isEqualId(_id, overlayId)
   );
 
-  if (!sourceOverlay) return throwHttpError(ErrorKinds.OVERLAY_NOT_FOUND);
+  if (!sourceOverlay) return throwError(ErrorKinds.OVERLAY_NOT_FOUND);
 
   const sourceWidget = sourceOverlay.widgets.find(({ _id }) =>
     isEqualId(_id, widgetId)
   );
 
-  if (!sourceWidget) return throwHttpError(ErrorKinds.WIDGET_NOT_FOUND);
+  if (!sourceWidget) return throwError(ErrorKinds.WIDGET_NOT_FOUND);
   if (!hasVariations(sourceWidget))
-    return throwHttpError(ErrorKinds.INVALID_REQUEST_PAYLOAD);
+    return throwError(ErrorKinds.INVALID_REQUEST_PAYLOAD);
 
   const variationToDuplicate = sourceWidget.variations.find(({ _id }) =>
     isEqualId(variationId, _id)
   );
 
-  if (!variationToDuplicate)
-    return throwHttpError(ErrorKinds.VARIATION_NOT_FOUND);
+  if (!variationToDuplicate) return throwError(ErrorKinds.VARIATION_NOT_FOUND);
 
   const destinationOverlay = user.integrations?.overlays?.find(({ _id }) =>
     isEqualId(destOverlay, _id)
   );
 
-  if (!destinationOverlay) return throwHttpError(ErrorKinds.OVERLAY_NOT_FOUND);
+  if (!destinationOverlay) return throwError(ErrorKinds.OVERLAY_NOT_FOUND);
 
   const updated = destinationOverlay.widgets.map((widget) =>
     isEqualId(widget._id, destWidget) && hasVariations(widget)

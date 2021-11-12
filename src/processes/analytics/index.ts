@@ -96,11 +96,11 @@ export const getDonationsRecap = async (
     .sort({ timestamp: 1 })
     .lean();
 
-  const donationsLastMonth = donations.filter((donation) =>
+  const donationsThisMonth = donations.filter((donation) =>
     isAfter(new Date(donation.timestamp), startOfMonth(new Date()))
   );
 
-  const donationsLastStream = streamingStartDate
+  const donationsThisStream = streamingStartDate
     ? donations.filter((donation) =>
         isAfter(new Date(donation.timestamp), streamingStartDate)
       )
@@ -108,7 +108,7 @@ export const getDonationsRecap = async (
 
   return {
     allTime: computeTotalDonated(donations),
-    lastMonth: computeTotalDonated(donationsLastMonth),
-    lastStream: computeTotalDonated(donationsLastStream),
+    thisMonth: computeTotalDonated(donationsThisMonth),
+    thisStream: computeTotalDonated(donationsThisStream),
   };
 };

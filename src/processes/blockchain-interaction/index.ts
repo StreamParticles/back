@@ -10,12 +10,12 @@ import {
 } from "@streamparticles/lib";
 
 import { createDonation } from "#daos/donation";
+import { getUsername } from "#services/elrond";
 import logger from "#services/logger";
 import { temporizeFn } from "#utils/temporize";
 import { decodeDataFromTx } from "#utils/transactions";
 import {
   computeTransactionAmount,
-  getHerotagFromErdAddress,
   normalizeHerotag,
 } from "#utils/transactions";
 
@@ -83,7 +83,7 @@ export const reactToNewTransaction = async (
         data: transaction.data,
       };
     } else {
-      const herotag = await getHerotagFromErdAddress(transaction.sender);
+      const herotag = await getUsername(transaction.sender);
 
       const amount = computeTransactionAmount(transaction.value);
 

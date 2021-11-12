@@ -1,7 +1,7 @@
 import User from "#models/User";
+import { getErdAddress } from "#services/elrond";
 import logger from "#services/logger";
 import { connectToDatabase } from "#services/mongoose";
-import { getErdAddressFromHerotag } from "#utils/transactions";
 
 const populateErdAddressFromHerotag = async () => {
   const users = await User.find({ erdAddress: { $exists: false } })
@@ -12,7 +12,7 @@ const populateErdAddressFromHerotag = async () => {
 
   for (const user of users) {
     try {
-      const erdAddress = await getErdAddressFromHerotag(user.herotag as string);
+      const erdAddress = await getErdAddress(user.herotag as string);
 
       if (erdAddress) {
         await User.updateOne(

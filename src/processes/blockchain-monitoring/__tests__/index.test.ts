@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/no-var-requires */
 import { ElrondTransaction } from "@streamparticles/lib";
 import { sub } from "date-fns";
+import sinon, { SinonFakeTimers } from "sinon";
 
 import factories from "#utils/tests";
 import { fakeTimestamp } from "#utils/tests/fake";
@@ -8,24 +9,37 @@ import { fakeTimestamp } from "#utils/tests/fake";
 import { filterNewIncomingTransactions } from "../";
 
 describe("Blockchain monitoring unit testing", () => {
-  const targetErdAdress = factories.user.build().erdAddress;
+  let clock: SinonFakeTimers;
+  let targetErdAdress: string;
+  let elrondTransactions: ElrondTransaction[];
+  let hashes: string[];
+  let lastRestart: number;
 
-  const elrondTransactions: ElrondTransaction[] = [
-    factories.transaction.build(),
-    factories.transaction.build({
-      receiver: targetErdAdress,
-    }),
-    factories.transaction.build({
-      receiver: targetErdAdress,
-    }),
-    factories.transaction.build({
-      receiver: targetErdAdress,
-    }),
-  ];
+  beforeAll(() => {
+    clock = sinon.useFakeTimers(new Date(2021, 9, 6));
 
-  const hashes = elrondTransactions.map(({ hash }) => hash);
+    targetErdAdress = factories.user.build().erdAddress;
 
-  const lastRestart = fakeTimestamp(sub(new Date(), { days: 1 }));
+    elrondTransactions = [
+      factories.transaction.build(),
+      factories.transaction.build({
+        receiver: targetErdAdress,
+      }),
+      factories.transaction.build({
+        receiver: targetErdAdress,
+      }),
+      factories.transaction.build({
+        receiver: targetErdAdress,
+      }),
+    ];
+
+    hashes = elrondTransactions.map(({ hash }) => hash);
+    lastRestart = fakeTimestamp(sub(new Date(), { days: 1 }));
+  });
+
+  afterAll(() => {
+    clock.restore();
+  });
 
   describe("filterNewIncomingTransactions", () => {
     describe("when there is no last balance snapshot", () => {
@@ -43,7 +57,6 @@ describe("Blockchain monitoring unit testing", () => {
 
             const txs = filterNewIncomingTransactions(
               [notMatchingTx, ...elrondTransactions],
-              targetErdAdress,
               factories.user.build(),
               hashes,
               lastRestart
@@ -64,7 +77,6 @@ describe("Blockchain monitoring unit testing", () => {
 
             const txs = filterNewIncomingTransactions(
               [notMatchingTx, ...elrondTransactions],
-              targetErdAdress,
               factories.user.build({ streamingStartDate: null }),
               hashes,
               lastRestart
@@ -86,7 +98,6 @@ describe("Blockchain monitoring unit testing", () => {
 
             const txs = filterNewIncomingTransactions(
               [notMatchingTx, ...elrondTransactions],
-              targetErdAdress,
               factories.user.build({
                 streamingStartDate: sub(new Date(), { hours: 4 }),
               }),
@@ -109,7 +120,6 @@ describe("Blockchain monitoring unit testing", () => {
 
             const txs = filterNewIncomingTransactions(
               [notMatchingTx, ...elrondTransactions],
-              targetErdAdress,
               factories.user.build(),
               hashes,
               lastRestart
@@ -131,7 +141,6 @@ describe("Blockchain monitoring unit testing", () => {
 
             const txs = filterNewIncomingTransactions(
               [notMatchingTx, ...elrondTransactions],
-              targetErdAdress,
               factories.user.build(),
               hashes,
               lastRestart
@@ -155,7 +164,6 @@ describe("Blockchain monitoring unit testing", () => {
 
           const txs = filterNewIncomingTransactions(
             [matchingTx, ...elrondTransactions],
-            targetErdAdress,
             factories.user.build({
               erdAddress: targetErdAdress,
               streamingStartDate: sub(new Date(), { hours: 7 }),
@@ -198,7 +206,6 @@ describe("Blockchain monitoring unit testing", () => {
 
           const txs = filterNewIncomingTransactions(
             [matchingTx1, matchingTx2, matchingTx3, ...elrondTransactions],
-            targetErdAdress,
             factories.user.build(),
             hashes,
             lastRestart

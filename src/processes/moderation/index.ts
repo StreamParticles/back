@@ -1,7 +1,9 @@
+import { ErrorKinds } from "@streamparticles/lib";
 import { Id } from "@streamparticles/lib/out/types/mongoose";
 import { uniq } from "lodash";
 
 import User from "#models/User";
+import { error } from "#utils/http";
 
 export const addBannedWord = async (
   userId: Id,
@@ -9,7 +11,7 @@ export const addBannedWord = async (
 ): Promise<void> => {
   const user = await User.findById(userId)
     .select({ moderation: true })
-    .orFail(new Error("No user found"))
+    .orFail(error(ErrorKinds.USER_NOT_FOUND))
     .lean();
 
   const bannedWords = user?.moderation?.bannedWords || [];
@@ -28,7 +30,7 @@ export const addBannedAddress = async (
 ): Promise<void> => {
   const user = await User.findById(userId)
     .select({ moderation: true })
-    .orFail(new Error("No user found"))
+    .orFail(error(ErrorKinds.USER_NOT_FOUND))
     .lean();
 
   const bannedAddresses = user?.moderation?.bannedAddresses || [];
@@ -47,7 +49,7 @@ export const addVipAddress = async (
 ): Promise<void> => {
   const user = await User.findById(userId)
     .select({ moderation: true })
-    .orFail(new Error("No user found"))
+    .orFail(error(ErrorKinds.USER_NOT_FOUND))
     .lean();
 
   const vipAddresses = user?.moderation?.vipAddresses || [];
@@ -66,7 +68,7 @@ export const removeBannedWord = async (
 ): Promise<void> => {
   const user = await User.findById(userId)
     .select({ moderation: true })
-    .orFail(new Error("No user found"))
+    .orFail(error(ErrorKinds.USER_NOT_FOUND))
     .lean();
 
   const bannedWords = user?.moderation?.bannedWords || [];
@@ -85,7 +87,7 @@ export const removeBannedAddress = async (
 ): Promise<void> => {
   const user = await User.findById(userId)
     .select({ moderation: true })
-    .orFail(new Error("No user found"))
+    .orFail(error(ErrorKinds.USER_NOT_FOUND))
     .lean();
 
   const bannedAddresses = user?.moderation?.bannedAddresses || [];
@@ -106,7 +108,7 @@ export const removeVipAddress = async (
 ): Promise<void> => {
   const user = await User.findById(userId)
     .select({ moderation: true })
-    .orFail(new Error("No user found"))
+    .orFail(error(ErrorKinds.USER_NOT_FOUND))
     .lean();
 
   const vipAddresses = user?.moderation?.vipAddresses || [];

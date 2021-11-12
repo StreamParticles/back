@@ -10,31 +10,23 @@ import { getDonationsRecap, getLastDonators, getTopDonators } from "..";
 
 describe("Donations Listings integration tests", () => {
   let clock: SinonFakeTimers;
+  let user1: UserType, user2: UserType;
+  let now: Date;
 
   beforeAll(async () => {
     await connectToDatabase();
 
     await mongoose.connection.dropDatabase();
 
-    clock = sinon.useFakeTimers(new Date(2021, 9, 6));
-  });
+    clock = sinon.useFakeTimers(new Date(2021, 9, 23));
+    now = new Date();
 
-  afterAll(async () => {
-    await mongoose.connection.dropDatabase();
-
-    mongoose.disconnect();
-
-    clock.restore();
-  });
-
-  let user1: UserType, user2: UserType;
-  const now = new Date();
-
-  beforeAll(async () => {
     user1 = await factories.user.create({
       herotag: "test1.elrond",
       erdAddress:
         "erd19kzxa002kd7jyksc0765zclcr3qyl6h4eafx82kmnvxurmvp2n7sav9vg8",
+      isStreaming: true,
+      streamingStartDate: sub(now, { hours: 2 }),
     });
 
     const baseDonation1: Partial<DonationType> = {
@@ -110,7 +102,7 @@ describe("Donations Listings integration tests", () => {
         ...(baseDonation1 as DonationType),
         isVisible: true,
         senderHerotag: "test3.elrond",
-        amount: 0.07702,
+        amount: 0.007702,
         data: "He watched the dancing pigler",
         timestamp: sub(now, { days: 2 }).getTime(),
         senderErdAdress:
@@ -119,9 +111,9 @@ describe("Donations Listings integration tests", () => {
       factories.donation.create({
         ...(baseDonation1 as DonationType),
         isVisible: true,
-        amount: 0.005967,
+        amount: 0.05967,
         data: "Her scream silenced the rowdy teenagers.",
-        timestamp: sub(now, { days: 1 }).getTime(),
+        timestamp: sub(now, { hours: 1 }).getTime(),
         senderErdAdress:
           "erd19kaxa002kd7jyksc0265zclcr3il6h4eaqx82kmnvxurmvp2n7sav9vg8",
       }),
@@ -182,6 +174,14 @@ describe("Donations Listings integration tests", () => {
           "erd19kaxa002kd7jyksc076dzclcr3il6h4eaqx82kmnvxurmvp2n7sav9vg8",
       }),
     ]);
+  });
+
+  afterAll(async () => {
+    await mongoose.connection.dropDatabase();
+
+    mongoose.disconnect();
+
+    clock.restore();
   });
 
   describe("Last Donators", () => {
@@ -292,9 +292,9 @@ describe("Donations Listings integration tests", () => {
     it("should return all time received donations", async () => {
       const donationRecap = await getDonationsRecap(user1.herotag);
 
-      expect(donationRecap.allTime).toEqual(2.867987);
-      expect(donationRecap.lastMonth).toEqual(1.767987);
-      expect(donationRecap.lastStream).toEqual(1.692987);
+      expect(donationRecap.allTime).toEqual(2.852372);
+      expect(donationRecap.thisMonth).toEqual(1.752372);
+      expect(donationRecap.thisStream).toEqual(0.05967);
     });
   });
 });

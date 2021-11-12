@@ -1,5 +1,8 @@
 import { createCipheriv, createDecipheriv } from "crypto";
 
+import logger from "#services/logger";
+import { connectToDatabase } from "#services/mongoose";
+
 import { ENV } from "./env";
 
 //set field
@@ -51,4 +54,21 @@ export const decryptStringToNumber = (text: string): number | undefined => {
   if (text === undefined) return undefined;
 
   return Number(decrypt(text));
+};
+
+export const withDatabase = (
+  fn: (...args: unknown[]) => Promise<void>
+): void => {
+  connectToDatabase()
+    .then(async () => {
+      logger.info("Starting script");
+
+      await fn();
+
+      logger.info("Done");
+    })
+    .catch((error) => {
+      logger.error(error);
+    })
+    .finally(() => process.exit());
 };

@@ -14,13 +14,14 @@ import * as poll from "#utils/poll";
 
 jest.mock("../../blockchain-interaction");
 import { ElrondTransaction, UserType } from "@streamparticles/lib";
+import { Id } from "@streamparticles/lib/out/types/mongoose";
 
 import { connectToDatabase } from "#services/mongoose";
 import factories from "#utils/tests";
 
 import {
   balanceHandler,
-  launchBlockchainMonitoring,
+  monitorBlockChain,
   resumeBlockchainMonitoring,
   toggleBlockchainMonitoring,
 } from "../";
@@ -381,12 +382,12 @@ describe("Maiar integration testing", () => {
     test("", async () => {
       const baseUser = factories.user.build();
 
-      await launchBlockchainMonitoring(baseUser.erdAddress, baseUser);
+      await monitorBlockChain(baseUser.erdAddress, baseUser);
 
       expect(mockedPoll.poll).toHaveBeenCalledTimes(1);
       expect(mockedPoll.poll).toHaveBeenCalledWith(
         expect.any(Function),
-        2000,
+        10000,
         expect.any(Function)
       );
     });
@@ -402,7 +403,7 @@ describe("Maiar integration testing", () => {
 
       it("should not start blockchain monitoring", async () => {
         const result = await toggleBlockchainMonitoring(
-          factories.user.build()._id as any,
+          factories.user.build()._id as Id,
           true
         );
 
@@ -428,7 +429,7 @@ describe("Maiar integration testing", () => {
 
       it("should not start blockchain monitoring", async () => {
         const result = await toggleBlockchainMonitoring(
-          createdUser._id as any,
+          createdUser._id as Id,
           false
         );
 
@@ -451,7 +452,7 @@ describe("Maiar integration testing", () => {
       beforeAll(async () => {
         createdUser = await factories.user.create();
 
-        mockedElrond.dns.resolve = jest.fn().mockResolvedValue(targetErdAdress);
+        mockedElrond.getErdAddress.mockResolvedValue(targetErdAdress);
       });
 
       afterAll(async () => {
@@ -462,7 +463,7 @@ describe("Maiar integration testing", () => {
 
       it("should start blockchain monitoring", async () => {
         const result = await toggleBlockchainMonitoring(
-          createdUser._id as any,
+          createdUser._id as Id,
           true
         );
 
@@ -475,7 +476,7 @@ describe("Maiar integration testing", () => {
         expect(mockedPoll.poll).toHaveBeenCalledTimes(1);
         expect(mockedPoll.poll).toHaveBeenCalledWith(
           expect.any(Function),
-          2000,
+          10000,
           expect.any(Function)
         );
       });
@@ -524,13 +525,13 @@ describe("Maiar integration testing", () => {
 
         expect(mockedPoll.poll).toHaveBeenCalledWith(
           expect.any(Function),
-          2000,
+          10000,
           expect.any(Function)
         );
 
         expect(mockedPoll.poll).toHaveBeenCalledWith(
           expect.any(Function),
-          2000,
+          10000,
           expect.any(Function)
         );
       });

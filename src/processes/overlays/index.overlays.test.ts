@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { OverlayData, UserType } from "@streamparticles/lib";
 import mongoose from "mongoose";
 

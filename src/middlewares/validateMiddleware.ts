@@ -4,7 +4,7 @@ import { ObjectSchema } from "joi";
 import { isEmpty } from "lodash";
 
 import logger from "#services/logger";
-import { throwHttpError } from "#utils/http";
+import { throwError } from "#utils/http";
 
 export const createValidationMiddleware = <Req extends Request<{}, {}, {}, {}>>(
   schema: ObjectSchema
@@ -20,7 +20,7 @@ export const createValidationMiddleware = <Req extends Request<{}, {}, {}, {}>>(
 
     if (result.error) {
       logger.error(result.error.message);
-      throwHttpError(ErrorKinds.INVALID_REQUEST_PAYLOAD);
+      throwError(ErrorKinds.INVALID_REQUEST_PAYLOAD);
     }
 
     return next();

@@ -1,13 +1,15 @@
+import { ErrorKinds } from "@streamparticles/lib";
 import { Id } from "@streamparticles/lib/out/types/mongoose";
 
 import User from "#models/User";
+import { error } from "#utils/http";
 
 export const getDonationGoalSentAmount = async (
   herotag: string
 ): Promise<number> => {
   const user = await User.findByHerotag(herotag)
     .select({ donationData: true })
-    .orFail(new Error("User not found"))
+    .orFail(error(ErrorKinds.USER_NOT_FOUND))
     .lean();
 
   const currentSentAmount =
@@ -36,7 +38,7 @@ export const incrementDonationGoalSentAmount = async (
 ): Promise<void> => {
   const user = await User.findById(userId)
     .select({ donationData: true })
-    .orFail(new Error("User not found"))
+    .orFail(error(ErrorKinds.USER_NOT_FOUND))
     .lean();
 
   const currentSentAmount =

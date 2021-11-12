@@ -13,8 +13,9 @@ import {
 import { DEFAULT_PAGINATION } from "#constants/pagination";
 
 export const paginate = async <T>(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   model: Model<any>,
-  query: any[],
+  query: unknown[],
   pagination: PaginationSettings = DEFAULT_PAGINATION
 ): Promise<PaginatedResult<T>> => {
   // Page numerotation starts from 0
