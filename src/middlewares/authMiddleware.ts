@@ -4,7 +4,6 @@ import { NextFunction, Response } from "express";
 import User from "#models/User";
 import { jwtPayload } from "#services/jwt";
 import { AuthenticatedRequest } from "#types_/express";
-import { error, throwError } from "#utils/http";
 import { isVerified } from "#utils/user";
 
 export const authenticateMiddleware = async (
@@ -24,22 +23,22 @@ export const authenticateMiddleware = async (
   try {
     const payload = jwtPayload(token);
 
-    if (!payload.herotag) throwError(ErrorKinds.INVALID_AUTH_TOKEN);
+    if (!payload.herotag) throw new Error(ErrorKinds.INVALID_AUTH_TOKEN);
 
     const user = await User.findByHerotag(payload.herotag)
       .select({ status: true, herotag: true })
-      .orFail(error(ErrorKinds.NOT_REGISTERED_HEROTAG))
+      .orFail(new Error(ErrorKinds.NOT_REGISTERED_HEROTAG))
       .lean();
 
     if (!isVerified(user))
-      throwError(ErrorKinds.ACCOUNT_WITH_VERIFICATION_PENDING);
+      throw new Error(ErrorKinds.ACCOUNT_WITH_VERIFICATION_PENDING);
 
     req.herotag = user.herotag;
     req.userId = user._id;
 
     next();
   } catch (error) {
-    throwError(ErrorKinds.INVALID_AUTH_TOKEN);
+    throw new Error(ErrorKinds.INVALID_AUTH_TOKEN);
   }
 };
 
@@ -51,23 +50,23 @@ export const apiAuthenticateMiddleware = async (
   try {
     const { apiKey } = req.params;
 
-    if (!apiKey) return throwError(ErrorKinds.INVALID_REQUEST_PAYLOAD);
+    if (!apiKey) throw new Error(ErrorKinds.INVALID_REQUEST_PAYLOAD);
 
     const user = await User.findOne({
       "integrations.apiKey": req.params.apiKey,
     })
       .select({ status: true, herotag: true })
-      .orFail(error(ErrorKinds.NOT_REGISTERED_HEROTAG))
+      .orFail(new Error(ErrorKinds.NOT_REGISTERED_HEROTAG))
       .lean();
 
     if (!isVerified(user))
-      throwError(ErrorKinds.ACCOUNT_WITH_VERIFICATION_PENDING);
+      throw new Error(ErrorKinds.ACCOUNT_WITH_VERIFICATION_PENDING);
 
     req.herotag = user.herotag;
     req.userId = user._id;
 
     next();
   } catch (error) {
-    throwError(ErrorKinds.INVALID_AUTH_TOKEN);
+    throw new Error(ErrorKinds.INVALID_AUTH_TOKEN);
   }
 };

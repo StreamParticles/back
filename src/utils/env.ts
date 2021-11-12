@@ -45,7 +45,10 @@ interface EnvVariables {
   IFTTT_API: string;
 
   // DEBUG
+  SENTRY_DSN?: string;
+  SENTRY_TAGS_KEY?: string;
   ENABLE_CONSOLE_TRANSPORT?: boolean;
+  ENABLE_SENTRY_TRANSPORT?: boolean;
 }
 
 const environmentVariablesValidator = Joi.object({
@@ -85,7 +88,10 @@ const environmentVariablesValidator = Joi.object({
   IFTTT_API: Joi.string().required(),
 
   // DEBUG
+  SENTRY_DSN: Joi.string(),
+  SENTRY_TAGS_KEY: Joi.string(),
   ENABLE_CONSOLE_TRANSPORT: Joi.boolean(),
+  ENABLE_SENTRY_TRANSPORT: Joi.boolean(),
 }).unknown(true);
 
 // Load environment config

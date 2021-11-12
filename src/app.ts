@@ -12,7 +12,7 @@ import helmet from "helmet";
 //@ts-ignore
 import xss from "xss-clean";
 
-import errorMiddleware from "#middlewares/errorHandler";
+import errorMiddleware from "#middlewares/errorMiddleware";
 import { requestLoggerMiddleware } from "#middlewares/requestLoggerMiddleware";
 
 import routes from "./api";

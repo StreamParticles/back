@@ -1,44 +1,53 @@
-import { isEmpty, omit } from "lodash";
+import { isEmpty } from "lodash";
 import { createLogger, format, transports } from "winston";
+import Sentry from "winston-sentry-log";
 
 import { ENV } from "#utils/env";
 import { isObject } from "#utils/object";
+
 const { combine, timestamp, printf, colorize, errors, metadata } = format;
 
-const withTimestampFormat = printf(
-  ({ level, message, metadata: rawMetadata, timestamp }) => {
-    const formattedMessage = isObject(message)
-      ? JSON.stringify(message, null, 4)
-      : message;
+const withTimestampFormat = printf(({ level, message, metadata }) => {
+  const formattedMessage = isObject(message)
+    ? JSON.stringify(message, null, 4)
+    : message;
 
-    const metadata = omit(rawMetadata, ["timestamp"]);
+  const { timestamp, ...rest } = metadata;
 
-    return !!metadata && !isEmpty(metadata)
-      ? `${timestamp} [${level}]: ${formattedMessage} ${JSON.stringify(
-          metadata,
-          null,
-          4
-        )}`
-      : `${timestamp} [${level}]: ${formattedMessage}`;
-  }
-);
+  return `${timestamp} [${level}]: ${formattedMessage} ${
+    !!rest && !isEmpty(rest) ? JSON.stringify(rest, null, 4) : ""
+  }`;
+});
 
 const loggerFormat = combine(
   colorize(),
   errors({ stack: true }),
   timestamp(),
-  withTimestampFormat,
-  metadata()
+  metadata(),
+  withTimestampFormat
 );
 
 const logger = createLogger({
-  level: "info",
-  format: loggerFormat,
   transports: [
-    new transports.File({ filename: "error.log", level: "error" }),
-    new transports.File({ filename: "combined.log" }),
+    new transports.File({
+      format: loggerFormat,
+      filename: "error.log",
+      level: "error",
+    }),
+    new transports.File({ format: loggerFormat, filename: "combined.log" }),
   ],
 });
+
+if (ENV.ENABLE_SENTRY_TRANSPORT && ENV.SENTRY_DSN) {
+  logger.add(
+    new Sentry({
+      config: {
+        dsn: ENV.SENTRY_DSN,
+        tags: { key: ENV.SENTRY_TAGS_KEY },
+      },
+    })
+  );
+}
 
 if (ENV.ENABLE_CONSOLE_TRANSPORT) {
   logger.add(

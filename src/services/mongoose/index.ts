@@ -60,7 +60,7 @@ export const getMongoUrlFromEnv = (obfuscated = false): string => {
     );
   }
 
-  // Thow if no database set
+  // throw if no database set
   if (!MONGODB_DBNAME) {
     throw new Error(
       "MONGODB: You must set the database 'MONGODB_DBNAME' name in your environment variables"

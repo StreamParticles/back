@@ -10,7 +10,6 @@ import { merge } from "lodash";
 import mongoose from "mongoose";
 
 import User from "#models/User";
-import { error, throwError } from "#utils/http";
 import { isEqualId } from "#utils/mongoose";
 
 export const createAlertVariation = async (
@@ -25,12 +24,12 @@ export const createAlertVariation = async (
     "integrations.overlays._id": overlayId,
   })
     .select({ "integrations.overlays.$": true })
-    .orFail(error(ErrorKinds.USER_NOT_FOUND))
+    .orFail(new Error(ErrorKinds.USER_NOT_FOUND))
     .lean();
 
   const [overlayToUpdate] = user?.integrations?.overlays || [];
 
-  if (!overlayToUpdate) return throwError(ErrorKinds.OVERLAY_NOT_FOUND);
+  if (!overlayToUpdate) throw new Error(ErrorKinds.OVERLAY_NOT_FOUND);
 
   const eventuallyUpdateWidget = (widget: Widget) =>
     isEqualId(widget._id, widgetId)
@@ -73,24 +72,24 @@ export const getAlertVariation = async (
     "integrations.overlays.overlayId": overlayId,
   })
     .select({ "integrations.overlays.$": true })
-    .orFail(error(ErrorKinds.USER_NOT_FOUND))
+    .orFail(new Error(ErrorKinds.USER_NOT_FOUND))
     .lean();
 
   const [overlay] = user?.integrations?.overlays || [];
 
-  if (!overlay) return throwError(ErrorKinds.OVERLAY_NOT_FOUND);
+  if (!overlay) throw new Error(ErrorKinds.OVERLAY_NOT_FOUND);
 
   const widget = overlay.widgets.find((widget) =>
     isEqualId(widgetId, widget._id)
   );
 
-  if (!widget) return throwError(ErrorKinds.WIDGET_NOT_FOUND);
+  if (!widget) throw new Error(ErrorKinds.WIDGET_NOT_FOUND);
 
   const variation = (widget as AlertsSetWidget).variations.find((variation) =>
     isEqualId(variationId, variation._id)
   );
 
-  if (!variation) return throwError(ErrorKinds.VARIATION_NOT_FOUND);
+  if (!variation) throw new Error(ErrorKinds.VARIATION_NOT_FOUND);
 
   return variation;
 };
@@ -107,12 +106,12 @@ export const updateAlertVariation = async (
     "integrations.overlays._id": overlayId,
   })
     .select({ "integrations.overlays.$": true })
-    .orFail(error(ErrorKinds.USER_NOT_FOUND))
+    .orFail(new Error(ErrorKinds.USER_NOT_FOUND))
     .lean();
 
   const [overlayToUpdate] = user?.integrations?.overlays || [];
 
-  if (!overlayToUpdate) return throwError(ErrorKinds.OVERLAY_NOT_FOUND);
+  if (!overlayToUpdate) throw new Error(ErrorKinds.OVERLAY_NOT_FOUND);
 
   const eventuallyUpdateVariation = (variation: AlertVariation) =>
     isEqualId(variationId, variation._id)
@@ -155,12 +154,12 @@ export const deleteAlertVariation = async (
     "integrations.overlays._id": overlayId,
   })
     .select({ "integrations.overlays.$": true })
-    .orFail(error(ErrorKinds.USER_NOT_FOUND))
+    .orFail(new Error(ErrorKinds.USER_NOT_FOUND))
     .lean();
 
   const [overlayToUpdate] = user?.integrations?.overlays || [];
 
-  if (!overlayToUpdate) return throwError(ErrorKinds.OVERLAY_NOT_FOUND);
+  if (!overlayToUpdate) throw new Error(ErrorKinds.OVERLAY_NOT_FOUND);
 
   const eventuallyUpdateWidget = (widget: Widget) => {
     return isEqualId(widgetId, widget._id) &&

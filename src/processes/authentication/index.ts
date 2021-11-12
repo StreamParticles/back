@@ -16,7 +16,6 @@ import {
   setAlreadyListennedTransactions,
 } from "#services/redis";
 import { getHashedPassword, verifyPassword } from "#utils/auth";
-import { throwError } from "#utils/http";
 import { json } from "#utils/mongoose";
 import { generateNewVerificationReference } from "#utils/nanoid";
 import poll from "#utils/poll";
@@ -43,19 +42,19 @@ export const validateAccountCreationData = async (
   data: UserAccountCreationData
 ): Promise<{ herotag: string; erdAddress: string }> => {
   if (data.password !== data.confirm)
-    return throwError(ErrorKinds.PASSWORD_AND_CONFIRM_NOT_MATCHING);
+    throw new Error(ErrorKinds.PASSWORD_AND_CONFIRM_NOT_MATCHING);
 
   const normalized = normalizeHerotag(data.herotag as string);
   const erdAddress = await getErdAddress(normalized);
 
-  if (!erdAddress) return throwError(ErrorKinds.COULD_NOT_FIND_HETOTAG_ON_DNS);
+  if (!erdAddress) throw new Error(ErrorKinds.COULD_NOT_FIND_HETOTAG_ON_DNS);
 
   if (
     await User.exists({
       herotag: normalized,
     })
   )
-    return throwError(ErrorKinds.ALREADY_REGISTERED_USER);
+    throw new Error(ErrorKinds.ALREADY_REGISTERED_USER);
 
   return { herotag: normalized, erdAddress };
 };
@@ -92,12 +91,12 @@ export const authenticateUser = async (
     User.findByHerotag(data.herotag as string)
   )) as UserType;
 
-  if (!user) return throwError(ErrorKinds.NOT_REGISTERED_HEROTAG);
+  if (!user) throw new Error(ErrorKinds.NOT_REGISTERED_HEROTAG);
 
   verifyPassword(data.password as string, user.password as string);
 
   if (user.status !== UserAccountStatus.VERIFIED)
-    return throwError(ErrorKinds.ACCOUNT_WITH_VERIFICATION_PENDING);
+    throw new Error(ErrorKinds.ACCOUNT_WITH_VERIFICATION_PENDING);
 
   const expiresIn = 60 * 60 * 48;
 
@@ -149,7 +148,7 @@ export const isHerotagValid = async (
     .select({ herotag: true })
     .lean();
 
-  if (!user) return throwError(ErrorKinds.NOT_REGISTERED_HEROTAG);
+  if (!user) throw new Error(ErrorKinds.NOT_REGISTERED_HEROTAG);
 
   return { herotag: user.herotag };
 };
@@ -158,10 +157,10 @@ export const validatePasswordEditionData = async (
   data?: UserAccountCreationData
 ): Promise<void> => {
   if (!data || !data.herotag || !data.password || !data.confirm)
-    return throwError(ErrorKinds.MISSING_DATA_FOR_ACCOUNT_CREATION);
+    throw new Error(ErrorKinds.MISSING_DATA_FOR_ACCOUNT_CREATION);
 
   if (data.password !== data.confirm)
-    return throwError(ErrorKinds.PASSWORD_AND_CONFIRM_NOT_MATCHING);
+    throw new Error(ErrorKinds.PASSWORD_AND_CONFIRM_NOT_MATCHING);
 
   await isHerotagValid(data.herotag);
 };
@@ -192,7 +191,7 @@ export const deleteAccount = async (
 ): Promise<void> => {
   const user: UserType | null = await User.findById(userId).lean();
 
-  if (!user) return throwError(ErrorKinds.NOT_REGISTERED_HEROTAG);
+  if (!user) throw new Error(ErrorKinds.NOT_REGISTERED_HEROTAG);
 
   await verifyPassword(password as string, user.password as string);
 

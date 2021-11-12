@@ -190,14 +190,14 @@ const resumeBlockchainMonitoringForUser = async (
   user: UserType
 ): Promise<string | null> => {
   if (!user.herotag) {
-    logger.error("UNABLE_TO_LAUCH_BC_MONITORING - NO HEROTAG", {
+    logger.warn("UNABLE_TO_LAUCH_BC_MONITORING - NO HEROTAG", {
       userId: user._id,
     });
     return null;
   }
 
   if (!user?.erdAddress) {
-    logger.error("UNABLE_TO_LAUCH_BC_MONITORING - NO ERD ADDRESS", {
+    logger.warn("UNABLE_TO_LAUCH_BC_MONITORING - NO ERD ADDRESS", {
       herotag: user.herotag,
     });
     return null;
@@ -206,7 +206,7 @@ const resumeBlockchainMonitoringForUser = async (
   const newBalance = await getUpdatedBalance(user.erdAddress);
 
   if (!newBalance) {
-    logger.error("UNABLE_TO_LAUCH_BC_MONITORING - NO NEW BALANCE", {
+    logger.warn("UNABLE_TO_LAUCH_BC_MONITORING - NO NEW BALANCE", {
       herotag: user.herotag,
     });
     return null;
@@ -222,7 +222,7 @@ const resumeBlockchainMonitoringForUser = async (
 
     return launchedUser;
   } catch (error) {
-    logger.error("UNABLE_TO_LAUCH_BC_MONITORING", {
+    logger.warn("UNABLE_TO_LAUCH_BC_MONITORING", {
       herotag: user.herotag,
     });
     return null;

@@ -2,18 +2,20 @@
 import { NextFunction, Request, Response } from "express";
 
 import logger from "#services/logger";
+import { AuthenticatedRequest } from "#types_/express";
 
 const errorMiddleware = (
   err: Error,
-  req: Request,
+  req: Request | AuthenticatedRequest,
   res: Response,
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   next: NextFunction
 ): void => {
   const error = typeof err === "string" ? new Error(err) : err;
 
-  logger.error({
+  logger.error(error.message, {
     ...(!!req.query && { query: req.query }),
+    userId: (req as AuthenticatedRequest).userId || null,
     url: req.url,
     error: error.message,
     stack: error.stack,
