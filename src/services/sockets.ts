@@ -12,7 +12,6 @@ import User from "#models/User";
 import { normalizeHerotag } from "#utils/transactions";
 import { isVerified } from "#utils/user";
 
-import { jwtPayload } from "./jwt";
 import logger from "./logger";
 import { subscriber } from "./redis";
 
@@ -21,17 +20,19 @@ interface ApiKeySocketData {
   apiKey: string;
 }
 
-interface TokenSocketData {
+interface OverlayLinkSocketData {
   herotag: string;
-  token: string;
+  overlayLink: string;
 }
 
-type SocketData = ApiKeySocketData | TokenSocketData;
+type SocketData = ApiKeySocketData | OverlayLinkSocketData;
 
 type Socket = Socket_ & { data?: SocketData };
 
-const isTokenSocketData = (data: SocketData): data is TokenSocketData => {
-  return !!(data as TokenSocketData).token;
+const isOverlayLinkSocketData = (
+  data: SocketData
+): data is OverlayLinkSocketData => {
+  return !!(data as OverlayLinkSocketData).overlayLink;
 };
 
 const apiKeyAuthDataValidator = Joi.object({
@@ -39,9 +40,9 @@ const apiKeyAuthDataValidator = Joi.object({
   apiKey: Joi.string().required(),
 });
 
-const tokenAuthDataValidator = Joi.object({
+const overlayLinkAuthDataValidator = Joi.object({
   herotag: Joi.string().required(),
-  token: Joi.string().required(),
+  overlayLink: Joi.string().required(),
 });
 
 interface SocketCallBack {
@@ -54,17 +55,44 @@ const apiKeyAuthenticate = async (
   callback: SocketCallBack
 ) => {
   const { error } = apiKeyAuthDataValidator.validate(data);
-  if (error) return callback(ErrorKinds.INVALID_REQUEST_PAYLOAD);
+  if (error) {
+    logger.warn(ErrorKinds.INVALID_REQUEST_PAYLOAD, {
+      context: "socket connection",
+      herotag: data.herotag,
+    });
+
+    return callback(ErrorKinds.INVALID_REQUEST_PAYLOAD);
+  }
 
   try {
     const user = await User.findByHerotag(data.herotag)
       .select({ status: true, herotag: true, "integrations.apiKey": true })
       .lean();
 
-    if (!user) return callback(ErrorKinds.NOT_REGISTERED_HEROTAG);
+    if (!user) {
+      logger.warn(ErrorKinds.NOT_REGISTERED_HEROTAG, {
+        context: "socket connection",
+        herotag: data.herotag,
+      });
 
-    if (!isVerified(user))
+      return callback(ErrorKinds.NOT_REGISTERED_HEROTAG);
+    }
+
+    if (!isVerified(user)) {
+      logger.warn(ErrorKinds.ACCOUNT_WITH_VERIFICATION_PENDING, {
+        context: "socket connection",
+        herotag: data.herotag,
+      });
+
       return callback(ErrorKinds.ACCOUNT_WITH_VERIFICATION_PENDING);
+    }
+
+    if (user.integrations?.apiKey !== data.apiKey) {
+      logger.warn(ErrorKinds.INVALID_API_KEY, {
+        context: "socket connection",
+        herotag: data.herotag,
+      });
+    }
 
     return callback(
       ErrorKinds.INVALID_API_KEY,
@@ -76,30 +104,54 @@ const apiKeyAuthenticate = async (
 };
 
 // Used to authenticate a user connecting to socket via streamParticles interface or streamParticles Browser-source
-const tokenAuthenticate = async (
-  data: TokenSocketData,
+const overlayLinkAuthenticate = async (
+  data: OverlayLinkSocketData,
   callback: SocketCallBack
 ) => {
-  const { error } = tokenAuthDataValidator.validate(data);
-  if (error) return callback(ErrorKinds.INVALID_REQUEST_PAYLOAD);
+  const { error } = overlayLinkAuthDataValidator.validate(data);
+  if (error) {
+    logger.warn(ErrorKinds.INVALID_REQUEST_PAYLOAD, {
+      context: "socket connection",
+      herotag: data.herotag,
+    });
+
+    return callback(ErrorKinds.INVALID_REQUEST_PAYLOAD);
+  }
 
   try {
-    const normalized = normalizeHerotag(data.herotag);
-    const payload = jwtPayload(data.token);
-    if (payload.herotag !== normalized) {
-      return callback(ErrorKinds.INVALID_AUTH_TOKEN);
-    }
-
-    const user = await User.findByHerotag(payload.herotag)
+    const user = await User.findOne({
+      herotag: data.herotag,
+      "integrations.overlays.generatedLink": data.overlayLink,
+    })
       .select({ status: true, herotag: true })
       .lean();
 
-    if (!user) return callback(ErrorKinds.NOT_REGISTERED_HEROTAG);
+    if (!user) {
+      logger.warn(ErrorKinds.NOT_REGISTERED_HEROTAG, {
+        context: "socket connection",
+        herotag: data.herotag,
+      });
+
+      return callback(ErrorKinds.NOT_REGISTERED_HEROTAG);
+    }
+
+    if (!isVerified(user)) {
+      logger.warn(ErrorKinds.ACCOUNT_WITH_VERIFICATION_PENDING, {
+        context: "socket connection",
+        herotag: data.herotag,
+      });
+    }
+
     return callback(
       ErrorKinds.ACCOUNT_WITH_VERIFICATION_PENDING,
       isVerified(user)
     );
   } catch (error) {
+    logger.warn(ErrorKinds.INVALID_AUTH_TOKEN, {
+      context: "socket connection",
+      herotag: data.herotag,
+    });
+
     return callback(ErrorKinds.INVALID_AUTH_TOKEN);
   }
 };
@@ -111,8 +163,8 @@ const authenticate = (
 ) => {
   socket.data = data;
 
-  return isTokenSocketData(data)
-    ? tokenAuthenticate(data, callback)
+  return isOverlayLinkSocketData(data)
+    ? overlayLinkAuthenticate(data, callback)
     : apiKeyAuthenticate(data, callback);
 };
 

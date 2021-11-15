@@ -70,8 +70,6 @@ export const getUserOverlayByGeneratedLink = async (
 export const getManyUserOverlays = async (
   userId: Id
 ): Promise<OverlayData[]> => {
-  throw new Error(ErrorKinds.OVERLAY_NOT_FOUND);
-
   const user = await User.findById(userId)
     .select({ "integrations.overlays": true })
     .lean();
