@@ -64,7 +64,7 @@ export const TextSchema = new mongoose.Schema(
       required: false,
       default: "{{herotag}} donated {{amount}}: {{message}}",
     },
-    fontColor: { type: String, required: false, default: "#FFFFFF" },
+    fontColor: { type: String, required: false, default: "#000000" },
     fontFamily: { type: String, required: false, default: "Roboto" },
     fontSize: { type: Number, required: false, default: 35 },
     align: {
