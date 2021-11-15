@@ -7,9 +7,9 @@ build : ;@echo "Building ${PROJECT}";
 	docker-compose build;
 
 start : ;@echo "Starting ${PROJECT}";
-	docker-compose up server;
+	docker-compose up -d server;
 
-start-daemon : ;@echo "Starting daemonized ${PROJECT}";
+start-multi : ;@echo "Starting multiple instances ${PROJECT}";
 	docker-compose up -d multi-instances-server;
 
 dev : ;@echo "Starting  ${PROJECT} in dev mode";

@@ -27,7 +27,7 @@ CMD ["npm", "run", "dev"]
 # Production image definition
 FROM base as server
 
-CMD ["npm", "run", "start"]
+CMD ["pm2-runtime", "process.yml", "--only", "api-server-0"]
 
 # Multi-instances image definition
 FROM base as multi-instances-server
