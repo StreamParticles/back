@@ -189,7 +189,7 @@ export const deleteAccount = async (
   userId: string,
   password: string
 ): Promise<void> => {
-  const user: UserType | null = await User.findById(userId).lean();
+  const user = (await json(User.findById(userId))) as UserType | null;
 
   if (!user) throw new Error(ErrorKinds.NOT_REGISTERED_HEROTAG);
 

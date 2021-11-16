@@ -14,19 +14,19 @@ import {
 
 const Router = express.Router();
 
-Router.route("/v1/analytics/last-donators/api-key/:apiKey").get(
+Router.route("/v1/:apiKey/last-donators").get(
   apiAuthenticateMiddleware,
   validateGetLastDonators,
   getLastDonators
 );
 
-Router.route("/v1/analytics/top-donators/api-key/:apiKey").get(
+Router.route("/v1/:apiKey/top-donators").get(
   apiAuthenticateMiddleware,
   validateGetTopDonators,
   getTopDonators
 );
 
-Router.route("/v1/analytics/donations-recap/api-key/:apiKey").get(
+Router.route("/v1/:apiKey/donations-recap").get(
   apiAuthenticateMiddleware,
   validateGetDonationRecap,
   getDonationRecap
