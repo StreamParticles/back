@@ -35,7 +35,11 @@ services:
     image: mongo:4.2
     ports:
       - "27018:27017"
+    volumes:
+      - ../mongo_data:/data
   redis-server:
     image: "redis"
     ports:
       - "6380:6379"
+    volumes:
+      - ../redis_data:/data
