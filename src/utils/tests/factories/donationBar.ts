@@ -8,6 +8,8 @@ import {
 import faker from "faker";
 import mongoose from "mongoose";
 
+import DonationBarWidgetModel from "#models/widgetsModels/DonationBarWidget";
+
 import { fakeHexColor, fakeMediaSource } from "../fake";
 
 export const buildData = (overload?: Partial<DonationBar>): DonationBar => {
@@ -57,6 +59,17 @@ export const build = (
     isActive: true,
     name: faker.commerce.productName(),
     data: buildData(overload?.data),
+    userId: mongoose.Types.ObjectId(),
     ...overload,
   };
+};
+
+export const create = async (
+  overload?: Partial<DonationBarWidget>
+): Promise<DonationBarWidget> => {
+  const widget = (await DonationBarWidgetModel.create(
+    build(overload)
+  )) as DonationBarWidget & mongoose.Document<any, any, DonationBarWidget>;
+
+  return widget.toObject();
 };

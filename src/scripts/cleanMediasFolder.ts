@@ -1,13 +1,12 @@
 import {
   AlertsSetWidget,
   DonationBarWidget,
-  UserType,
   WidgetsKinds,
 } from "@streamparticles/lib";
 import fs from "fs";
 import path from "path";
 
-import User from "#models/User";
+import Widget from "#models/widgetsModels/Widget";
 import logger from "#services/logger";
 import { connectToDatabase } from "#services/mongoose";
 
@@ -19,24 +18,18 @@ const cleanMediasFolder = async () => {
     .readdirSync(path.join(__dirname, "../../remote/medias/images"))
     .filter((fileName) => fileName !== ".DS_Store");
 
-  const users = await User.find()
-    .select({ integrations: true })
-    .lean();
+  const widgets = await Widget.find().lean();
 
   audios.forEach((fileName) => {
-    const isUsed = users.some((user: UserType) =>
-      user.integrations?.overlays?.some(({ widgets }) =>
-        widgets.some((widget) => {
-          if (widget.kind === WidgetsKinds.ALERTS) {
-            return (widget as AlertsSetWidget).variations.some(
-              ({ audio }) => audio?.source?.[0]?.name === fileName
-            );
-          }
+    const isUsed = widgets.some((widget) => {
+      if (widget.kind === WidgetsKinds.ALERTS) {
+        return (widget as AlertsSetWidget).variations.some(
+          ({ audio }) => audio?.source?.[0]?.name === fileName
+        );
+      }
 
-          return false;
-        })
-      )
-    );
+      return false;
+    });
 
     if (!isUsed)
       fs.unlinkSync(
@@ -45,26 +38,22 @@ const cleanMediasFolder = async () => {
   });
 
   images.forEach((fileName) => {
-    const isUsed = users.some((user: UserType) =>
-      user.integrations?.overlays?.some(({ widgets }) =>
-        widgets.some((widget) => {
-          if (widget.kind === WidgetsKinds.ALERTS) {
-            return (widget as AlertsSetWidget).variations.some(
-              ({ image }) => image?.source?.[0]?.name === fileName
-            );
-          }
+    const isUsed = widgets.some((widget) => {
+      if (widget.kind === WidgetsKinds.ALERTS) {
+        return (widget as AlertsSetWidget).variations.some(
+          ({ image }) => image?.source?.[0]?.name === fileName
+        );
+      }
 
-          if (widget.kind === WidgetsKinds.DONATION_BAR) {
-            return (
-              (widget as DonationBarWidget).data.cursor?.source?.[0]?.name ===
-              fileName
-            );
-          }
+      if (widget.kind === WidgetsKinds.DONATION_BAR) {
+        return (
+          (widget as DonationBarWidget).data.cursor?.source?.[0]?.name ===
+          fileName
+        );
+      }
 
-          return false;
-        })
-      )
-    );
+      return false;
+    });
 
     if (!isUsed)
       fs.unlinkSync(

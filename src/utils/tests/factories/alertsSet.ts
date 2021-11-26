@@ -1,10 +1,12 @@
 import {
+  AlertsSetWidget,
   AlertVariation,
   WidgetsKinds,
-  WithVariationsWidget,
 } from "@streamparticles/lib";
 import faker from "faker";
 import mongoose from "mongoose";
+
+import AlertsSetWidgetModel from "#models/widgetsModels/AlertsSetWidget";
 
 import { fakeHexColor, fakeMediaSource } from "../fake";
 
@@ -41,15 +43,24 @@ export const buildVariation = (
   } as AlertVariation;
 };
 
-export const build = (
-  overload?: Partial<WithVariationsWidget<AlertVariation>>
-): WithVariationsWidget<AlertVariation> => {
+export const build = (overload?: Partial<AlertsSetWidget>): AlertsSetWidget => {
   return {
     _id: mongoose.Types.ObjectId(),
     kind: WidgetsKinds.ALERTS,
     isActive: true,
     name: faker.commerce.productName(),
     variations: [buildVariation(), buildVariation()],
+    userId: mongoose.Types.ObjectId(),
     ...overload,
   };
+};
+
+export const create = async (
+  overload?: Partial<AlertsSetWidget>
+): Promise<AlertsSetWidget> => {
+  const widget = (await AlertsSetWidgetModel.create(
+    build(overload)
+  )) as AlertsSetWidget & mongoose.Document<any, any, AlertsSetWidget>;
+
+  return widget.toObject();
 };

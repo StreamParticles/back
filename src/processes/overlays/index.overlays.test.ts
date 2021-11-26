@@ -1,9 +1,12 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { OverlayData, UserType } from "@streamparticles/lib";
+import { Id } from "@streamparticles/lib/out/types/mongoose";
 import mongoose from "mongoose";
 
+import Overlay from "#models/Overlay";
 import User from "#models/User";
 import { connectToDatabase } from "#services/mongoose";
+import { ObjectId } from "#utils/mongoose";
 import factories from "#utils/tests";
 
 import {
@@ -25,12 +28,16 @@ describe("Overlays integration test", () => {
 
   describe("createOverlay", () => {
     let user: UserType;
+    const userId = ObjectId();
 
     beforeAll(async () => {
+      const overlay = await factories.overlay.create({ userId });
+
       user = await factories.user.create({
         integrations: {
-          overlays: [factories.overlay.build()],
+          overlays: [overlay._id],
         },
+        _id: userId,
       });
     });
 
@@ -41,11 +48,15 @@ describe("Overlays integration test", () => {
 
       expect(updated?.integrations?.overlays).toHaveLength(2);
 
-      const created = updated?.integrations?.overlays?.[1] as OverlayData;
+      const created = updated?.integrations?.overlays?.[1];
 
-      expect(created).toHaveProperty("generatedLink");
-      expect(created).toHaveProperty("color");
-      expect(created).toHaveProperty("name");
+      expect(created).toBeDefined;
+
+      const createdOverlay = await Overlay.findById(created as Id).lean();
+
+      expect(createdOverlay).toHaveProperty("generatedLink");
+      expect(createdOverlay).toHaveProperty("color");
+      expect(createdOverlay).toHaveProperty("name");
     });
   });
 
@@ -53,15 +64,17 @@ describe("Overlays integration test", () => {
     let user: UserType;
     const overlayToKeepId = mongoose.Types.ObjectId();
     const overlayToDeleteId = mongoose.Types.ObjectId();
+    const userId = ObjectId();
 
     beforeAll(async () => {
+      await factories.overlay.create({ _id: overlayToKeepId, userId });
+      await factories.overlay.create({ _id: overlayToDeleteId, userId });
+
       user = await factories.user.create({
         integrations: {
-          overlays: [
-            factories.overlay.build({ _id: overlayToKeepId }),
-            factories.overlay.build({ _id: overlayToDeleteId }),
-          ],
+          overlays: [overlayToKeepId, overlayToDeleteId],
         },
+        _id: userId,
       });
     });
 
@@ -81,17 +94,25 @@ describe("Overlays integration test", () => {
 
   describe("getManyUserOverlays", () => {
     let user: UserType;
+    const userId = ObjectId();
 
     beforeAll(async () => {
+      const overlayIds = [
+        mongoose.Types.ObjectId(),
+        mongoose.Types.ObjectId(),
+        mongoose.Types.ObjectId(),
+        mongoose.Types.ObjectId(),
+      ];
+
+      await Promise.all(
+        overlayIds.map((_id) => factories.overlay.create({ _id, userId }))
+      );
+
       user = await factories.user.create({
         integrations: {
-          overlays: [
-            factories.overlay.build(),
-            factories.overlay.build(),
-            factories.overlay.build(),
-            factories.overlay.build(),
-          ],
+          overlays: overlayIds,
         },
+        _id: userId,
       });
     });
 
@@ -100,50 +121,47 @@ describe("Overlays integration test", () => {
 
       expect(overlays).toHaveLength(4);
 
-      // TO-DO cehck overlays content
+      // TO-DO check overlays content
     });
   });
 
   describe("getOverlayFonts", () => {
-    let user: UserType;
+    let overlays: OverlayData[];
 
     beforeAll(async () => {
-      user = await factories.user.create({
-        integrations: {
-          overlays: [
-            factories.overlay.build({
-              widgets: [
-                factories.alertsSet.build({
-                  variations: [
-                    factories.alertsSet.buildVariation({
-                      text: { fontFamily: "TestFontAlertVariation" } as any,
-                    }),
-                  ],
-                }),
-                factories.donationBar.build({
-                  data: factories.donationBar.buildData({
-                    text: { fontFamily: "TestFontDonation" } as any,
-                  }),
-                }),
-              ],
-            }),
-            factories.overlay.build({
-              widgets: [
-                factories.donationBar.build({
-                  data: factories.donationBar.buildData({
-                    text: { fontFamily: "ShouldNotAppear" } as any,
-                  }),
-                }),
-              ],
+      const widgets = await Promise.all([
+        factories.alertsSet.create({
+          variations: [
+            factories.alertsSet.buildVariation({
+              text: { fontFamily: "TestFontAlertVariation" } as any,
             }),
           ],
-        },
-      });
+        }),
+        factories.donationBar.create({
+          data: factories.donationBar.buildData({
+            text: { fontFamily: "TestFontDonation" } as any,
+          }),
+        }),
+        factories.donationBar.create({
+          data: factories.donationBar.buildData({
+            text: { fontFamily: "ShouldNotAppear" } as any,
+          }),
+        }),
+      ]);
+
+      overlays = await Promise.all([
+        factories.overlay.create({
+          widgets: [widgets[0]._id, widgets[1]._id],
+        }),
+        factories.overlay.create({
+          widgets: [widgets[2]._id],
+        }),
+      ]);
     });
 
     test("should return all fonts used in overlay", async () => {
       const fonts = await getOverlayFonts(
-        user?.integrations?.overlays?.[0]?.generatedLink as string
+        overlays?.[0]?.generatedLink as string
       );
 
       expect(fonts).toMatchObject([
@@ -155,34 +173,34 @@ describe("Overlays integration test", () => {
 
   describe("updateOverlayName", () => {
     let user: UserType;
-    const overlayId = mongoose.Types.ObjectId();
+    let overlay: OverlayData;
+    const userId = ObjectId();
 
     beforeAll(async () => {
+      overlay = await factories.overlay.create({
+        _id: mongoose.Types.ObjectId(),
+        name: "default_name",
+        userId,
+      });
+
       user = await factories.user.create({
         integrations: {
-          overlays: [
-            factories.overlay.build({
-              _id: overlayId,
-              name: "default_name",
-            }),
-          ],
+          overlays: [overlay._id],
         },
+        _id: userId,
       });
     });
 
     test("should update overlay name", async () => {
-      await updateOverlayName(user._id, overlayId, "updated_name");
+      await updateOverlayName(user._id, overlay._id, "updated_name");
 
-      const updated = await User.findOne({
-        _id: user._id,
-        "integrations.overlays._id": overlayId,
+      const updated = await Overlay.findOne({
+        _id: overlay._id,
       })
-        .select({ "integrations.overlays.$": true })
+        .select({ name: true })
         .lean();
 
-      const [overlay] = updated?.integrations?.overlays as OverlayData[];
-
-      expect(overlay).toHaveProperty("name", "updated_name");
+      expect(updated).toHaveProperty("name", "updated_name");
     });
   });
 });

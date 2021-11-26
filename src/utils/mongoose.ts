@@ -1,7 +1,7 @@
 import { PaginatedResult, PaginationSettings } from "@streamparticles/lib";
 import { Id } from "@streamparticles/lib/out/types/mongoose";
 import { isEqual } from "lodash";
-import {
+import mongoose, {
   Document,
   LeanDocument,
   Model,
@@ -93,3 +93,5 @@ export const json = async <T extends Document>(
 
 export const isEqualId = (id1: Id, id2: Id): boolean =>
   isEqual(String(id1), String(id2));
+
+export const ObjectId = mongoose.Types.ObjectId;

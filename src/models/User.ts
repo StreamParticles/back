@@ -5,10 +5,7 @@ import { decrypt, encrypt } from "#utils/database";
 import { ENV } from "#utils/env";
 import { normalizeHerotag } from "#utils/transactions";
 
-import { DonationsDataSchema } from "./schemas/DonationsData";
-import { OverlaySchema } from "./schemas/Overlay";
-
-export type UserMongooseDocument = UserType & mongoose.Document;
+type UserMongooseDocument = UserType & mongoose.Document;
 
 interface UserModel extends Model<UserMongooseDocument> {
   findByHerotag(
@@ -37,9 +34,9 @@ const UserSchema = new Schema<UserMongooseDocument, UserModel>(
     erdAddress: { type: String, required: true }, // TO-DO validate string format
     status: { type: UserAccountStatus, required: true },
     verificationReference: { type: String, required: true },
-    passwordEditionVerificationReference: { type: String, required: false },
+    passwordEditionVerificationReference: String,
     verificationStartDate: { type: String, required: true },
-    passwordEditionVerificationStartDate: { type: String, required: false },
+    passwordEditionVerificationStartDate: String,
     integrations: {
       ifttt: {
         eventName: {
@@ -54,10 +51,10 @@ const UserSchema = new Schema<UserMongooseDocument, UserModel>(
           get: decrypt,
           set: encrypt,
         },
-        isActive: { type: Boolean, required: false },
+        isActive: Boolean,
       },
-      overlays: { type: [OverlaySchema], required: false },
-      minimumRequiredAmount: { type: Number, required: false },
+      overlays: [{ type: Schema.Types.ObjectId, ref: "Overlay" }],
+      minimumRequiredAmount: Number,
       tinyAmountWording: {
         type: {
           ceilAmount: { type: String, required: true },
@@ -65,19 +62,24 @@ const UserSchema = new Schema<UserMongooseDocument, UserModel>(
         },
         required: false,
       },
-      apiKey: { type: String, required: false },
-      webhooks: { type: [String], required: false },
+      apiKey: String,
+      webhooks: [String],
     },
-    donationData: { type: DonationsDataSchema, required: false },
+    donationData: {
+      donationGoal: {
+        sentAmountAtDate: { type: Number },
+        lastResetDate: Date,
+      },
+    },
     moderation: {
-      bannedWords: [{ type: String }],
-      bannedAddresses: [{ type: String }],
-      vipAddresses: [{ type: String }],
+      bannedWords: [String],
+      bannedAddresses: [String],
+      vipAddresses: [String],
     },
-    isStreaming: { type: Boolean, required: false },
-    streamingStartDate: { type: Date, required: false },
-    referralLink: { type: String, required: false, get: decrypt, set: encrypt },
-    herotagQrCodePath: { type: String, required: false },
+    isStreaming: Boolean,
+    streamingStartDate: Date,
+    referralLink: { type: String, get: decrypt, set: encrypt },
+    herotagQrCodePath: String,
   },
   {
     timestamps: true,

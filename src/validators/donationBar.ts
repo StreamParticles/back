@@ -14,7 +14,6 @@ export const validateGetDonationBar = createValidationMiddleware<
 >(
   Joi.object({
     params: Joi.object({
-      overlayId: Joi.string().required(),
       widgetDataId: Joi.string().required(),
     }),
   })
@@ -25,7 +24,6 @@ export const validateUpdateDonationBar = createValidationMiddleware<
 >(
   Joi.object({
     body: Joi.object({
-      overlayId: Joi.string().required(),
       widgetDataId: Joi.string().required(),
       donationBar: donationBarValidator.required(),
     }),

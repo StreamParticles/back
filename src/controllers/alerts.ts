@@ -5,7 +5,6 @@ import * as alertProcesses from "#processes/alerts";
 import { AuthenticatedRequest } from "#types_/express";
 
 export interface CreateAlertVariationRequestBody {
-  overlayId: string;
   widgetId: string;
 }
 
@@ -15,7 +14,6 @@ export const createAlertVariation = async (
 ): Promise<void> => {
   await alertProcesses.createAlertVariation(
     req.userId as string,
-    req.body.overlayId,
     req.body.widgetId
   );
 
@@ -23,7 +21,6 @@ export const createAlertVariation = async (
 };
 
 export interface GetAlertVariationRequestParams {
-  overlayId: string;
   widgetId: string;
   variationId: string;
 }
@@ -34,7 +31,6 @@ export const getAlertVariation = async (
 ): Promise<void> => {
   const result = await alertProcesses.getAlertVariation(
     req.userId as string,
-    req.params.overlayId,
     req.params.widgetId,
     req.params.variationId
   );
@@ -43,7 +39,6 @@ export const getAlertVariation = async (
 };
 
 export interface UpdateAlertVariationRequestBody {
-  overlayId: string;
   widgetId: string;
   variationId: string;
   variation: AlertVariation;
@@ -55,7 +50,6 @@ export const updateAlertVariation = async (
 ): Promise<void> => {
   const result = await alertProcesses.updateAlertVariation(
     req.userId as string,
-    req.body.overlayId,
     req.body.widgetId,
     req.body.variationId,
     req.body.variation
@@ -65,7 +59,6 @@ export const updateAlertVariation = async (
 };
 
 export interface DeleteAlertVariationRequestParams {
-  overlayId: string;
   widgetId: string;
   variationId: string;
 }
@@ -76,7 +69,6 @@ export const deleteAlertVariation = async (
 ): Promise<void> => {
   const result = await alertProcesses.deleteAlertVariation(
     req.userId as string,
-    req.params.overlayId,
     req.params.widgetId,
     req.params.variationId
   );

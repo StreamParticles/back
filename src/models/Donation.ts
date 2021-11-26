@@ -7,17 +7,10 @@ import paginatePlugin, {
 
 const DonationSchema = new Schema(
   {
-    senderHerotag: {
-      type: String,
-      required: false,
-      // get: decrypt,
-      // set: encrypt,
-    },
+    senderHerotag: String,
     senderErdAdress: {
       type: String,
       required: true,
-      // get: decrypt,
-      // set: encrypt,
     },
     receiverUserId: {
       type: mongoose.Types.ObjectId,
@@ -27,14 +20,10 @@ const DonationSchema = new Schema(
     receiverHerotag: {
       type: String,
       required: true,
-      // get: decrypt,
-      // set: encrypt,
     },
     receiverErdAdress: {
       type: String,
       required: true,
-      // get: decrypt,
-      // set: encrypt,
     },
     amount: {
       type: Number, // When encrypted, we will need to use string here
@@ -42,11 +31,7 @@ const DonationSchema = new Schema(
       // get: decryptStringToNumber,
       // set: encryptNumberToString, TO-DO make the things necessary to uncomment those lines!!
     },
-    data: {
-      type: String,
-      required: false,
-      // get: decrypt, set: encrypt
-    },
+    data: String,
     timestamp: { type: Number, required: true },
     isAllowed: { type: Boolean, required: true, default: true },
     isVisible: { type: Boolean, required: true, default: true },
@@ -56,7 +41,7 @@ const DonationSchema = new Schema(
 
 DonationSchema.plugin(paginatePlugin);
 
-export type DonationMongooseDocument = DonationType & mongoose.Document;
+type DonationMongooseDocument = DonationType & mongoose.Document;
 
 export default mongoose.model<
   DonationMongooseDocument,

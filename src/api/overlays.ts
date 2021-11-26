@@ -1,36 +1,34 @@
 import express from "express";
 
 import {
-  addOverlayWidget,
-  createOneOverlay,
+  createOverlay,
+  createWidget,
   deleteOverlay,
-  deleteOverlayWidget,
+  deleteWidget,
   duplicateVariation,
   duplicateWidget,
-  getManyUserOverlays,
+  getOverlay,
+  getOverlayByGeneratedLink,
   getOverlayFonts,
-  getOverlayWidget,
-  getOverlayWidgets,
-  getUserOverlay,
-  getUserOverlayByGeneratedLink,
+  getUserOverlays,
+  getWidget,
   updateOverlayName,
   updateOverlayWidgetsPositions,
   updateWidgetName,
 } from "#controllers/overlays";
 import { authenticateMiddleware } from "#middlewares/authMiddleware";
 import {
-  validateAddOverlayWidget,
-  validateCreateOneOverlay,
+  validateCreateOverlay,
+  validateCreateWidget,
   validateDeleteOverlay,
-  validateDeleteOverlayWidget,
+  validateDeleteWidget,
   validateDuplicateVariation,
   validateDuplicateWidget,
-  validateGetManyUserOverlays,
+  validateGetOverlay,
+  validateGetOverlayByGeneratedLink,
   validateGetOverlayFonts,
-  validateGetOverlayWidget,
-  validateGetOverlayWidgets,
-  validateGetUserOverlay,
-  validateGetUserOverlayByGeneratedLink,
+  validateGetOverlays,
+  validateGetWidget,
   validateUpdateOverlayName,
   validateUpdateOverlayWidgetsPositions,
   validateUpdateWidgetName,
@@ -38,80 +36,78 @@ import {
 
 const Router = express.Router();
 
-Router.route("/overlays/overlay/:overlayId")
-  .get(validateGetUserOverlay, getUserOverlay)
+/** OVERLAY */
+
+Router.route("/overlay").post(
+  authenticateMiddleware,
+  validateCreateOverlay,
+  createOverlay
+);
+
+Router.route("/overlay/:overlayId")
+  .get(authenticateMiddleware, validateGetOverlay, getOverlay)
   .delete(authenticateMiddleware, validateDeleteOverlay, deleteOverlay);
 
-Router.route("/overlays/overlay-link/:overlayLink").get(
-  validateGetUserOverlayByGeneratedLink,
-  getUserOverlayByGeneratedLink
-);
-
-Router.route("/overlays/").get(
-  authenticateMiddleware,
-  validateGetManyUserOverlays,
-  getManyUserOverlays
-);
-
-Router.route("/overlays/overlay").post(
-  authenticateMiddleware,
-  validateCreateOneOverlay,
-  createOneOverlay
-);
-
-Router.route("/overlays/overlay-name").post(
+Router.route("/overlay/name").put(
   authenticateMiddleware,
   validateUpdateOverlayName,
   updateOverlayName
 );
 
-Router.route("/overlays/add-widget").post(
-  authenticateMiddleware,
-  validateAddOverlayWidget,
-  addOverlayWidget
-);
-
-Router.route("/overlays/overlay/widget-name").post(
-  authenticateMiddleware,
-  validateUpdateWidgetName,
-  updateWidgetName
-);
-
-Router.route("/overlays/overlay/widgets-positions").post(
+Router.route("/overlay/widgets/positions").put(
   authenticateMiddleware,
   validateUpdateOverlayWidgetsPositions,
   updateOverlayWidgetsPositions
 );
 
-Router.route("/overlays/:overlayId/widgets").get(
-  authenticateMiddleware,
-  validateGetOverlayWidgets,
-  getOverlayWidgets
+/** OVERLAY BY LINK */
+
+Router.route("/overlay-by-link/:overlayLink").get(
+  validateGetOverlayByGeneratedLink,
+  getOverlayByGeneratedLink
 );
 
-Router.route("/overlays/:overlayId/widget/:widgetId")
-  .get(authenticateMiddleware, validateGetOverlayWidget, getOverlayWidget)
-  .delete(
-    authenticateMiddleware,
-    validateDeleteOverlayWidget,
-    deleteOverlayWidget
-  );
+Router.route("/overlay-by-link/:overlayLink/fonts").get(
+  validateGetOverlayFonts,
+  getOverlayFonts
+);
 
-Router.route("/overlays/duplicate-widget").post(
+/** WIDGET */
+
+Router.route("/widget").post(
+  authenticateMiddleware,
+  validateCreateWidget,
+  createWidget
+);
+
+Router.route("/widget/:widgetId")
+  .get(authenticateMiddleware, validateGetWidget, getWidget)
+  .delete(authenticateMiddleware, validateDeleteWidget, deleteWidget);
+
+Router.route("/widget/name").put(
+  authenticateMiddleware,
+  validateUpdateWidgetName,
+  updateWidgetName
+);
+
+Router.route("/widget/duplicate").post(
   authenticateMiddleware,
   validateDuplicateWidget,
   duplicateWidget
 );
 
-Router.route("/overlays/duplicate-variation").post(
+Router.route("/widget/variation/duplicate").post(
   authenticateMiddleware,
   validateDuplicateVariation,
   duplicateVariation
 );
 
-Router.route("/overlays/fonts/overlay/:overlayLink").get(
-  validateGetOverlayFonts,
-  getOverlayFonts
+/** MULTIPLE OVERLAY ENDPOINTS */
+
+Router.route("/overlays").get(
+  authenticateMiddleware,
+  validateGetOverlays,
+  getUserOverlays
 );
 
 export default Router;

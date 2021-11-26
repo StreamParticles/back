@@ -1,15 +1,15 @@
 import {
   DonationBar,
   DonationBarWidget,
-  OverlayData,
   Text,
   UserType,
 } from "@streamparticles/lib";
 import { Id } from "@streamparticles/lib/out/types/mongoose";
 import mongoose from "mongoose";
 
-import User from "#models/User";
+import Widget from "#models/widgetsModels/Widget";
 import { connectToDatabase } from "#services/mongoose";
+import { ObjectId } from "#utils/mongoose";
 import factories from "#utils/tests";
 
 import { getDonationBar, updateDonationBar } from ".";
@@ -25,16 +25,23 @@ describe("Donation Bar integration test", () => {
 
   describe("getDonationBar", () => {
     let user: UserType;
-    const donationBarWidget = factories.donationBar.build();
+
+    const userId = ObjectId();
+
+    let donationBarWidget: DonationBarWidget;
 
     beforeAll(async () => {
+      donationBarWidget = await factories.donationBar.create({ userId });
+
+      const overlay = await factories.overlay.create({
+        userId,
+        widgets: [donationBarWidget._id],
+      });
+
       user = await factories.user.create({
+        _id: userId,
         integrations: {
-          overlays: [
-            factories.overlay.build({
-              widgets: [donationBarWidget],
-            }),
-          ],
+          overlays: [overlay._id],
         },
       });
     });
@@ -42,9 +49,7 @@ describe("Donation Bar integration test", () => {
     test("it should return the donation bar", async () => {
       const received = await getDonationBar(
         user._id as Id,
-        user?.integrations?.overlays?.[0]._id as Id,
-        (user?.integrations?.overlays?.[0].widgets[0] as DonationBarWidget).data
-          ._id as Id
+        donationBarWidget.data._id
       );
 
       expect(received).toMatchObject(donationBarWidget.data);
@@ -53,19 +58,24 @@ describe("Donation Bar integration test", () => {
 
   describe("updateDonationBar", () => {
     let user: UserType;
-    const donationBarWidget = factories.donationBar.build();
+    const userId = ObjectId();
+    let donationBarWidget: DonationBarWidget;
     const payload = factories.donationBar.buildData({
       text: { bold: true, content: "Lorem ipsum" } as Text,
     } as DonationBar);
 
     beforeAll(async () => {
+      donationBarWidget = await factories.donationBar.create({ userId });
+
+      const overlay = await factories.overlay.create({
+        userId,
+        widgets: [donationBarWidget._id],
+      });
+
       user = await factories.user.create({
+        _id: userId,
         integrations: {
-          overlays: [
-            factories.overlay.build({
-              widgets: [donationBarWidget],
-            }),
-          ],
+          overlays: [overlay._id],
         },
       });
     });
@@ -73,25 +83,13 @@ describe("Donation Bar integration test", () => {
     test("it should update the donation data", async () => {
       await updateDonationBar(
         user._id as Id,
-        user?.integrations?.overlays?.[0]._id as Id,
-        (user?.integrations?.overlays?.[0].widgets[0] as DonationBarWidget).data
-          ._id,
+        donationBarWidget.data._id,
         payload
       );
 
-      const updatedUser = await User.findById(user._id)
-        .select("integrations")
-        .lean();
+      const updated = await Widget.findById(donationBarWidget._id).lean();
 
-      expect(updatedUser?.integrations?.overlays).toHaveLength(1);
-
-      const [overlay] = updatedUser?.integrations?.overlays as OverlayData[];
-
-      expect(overlay.widgets).toHaveLength(1);
-
-      const [widget] = overlay.widgets;
-
-      expect(widget as DonationBarWidget).toMatchObject(donationBarWidget);
+      expect((updated as DonationBarWidget).data).toMatchObject(payload);
     });
   });
 });

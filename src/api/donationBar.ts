@@ -9,13 +9,13 @@ import {
 
 const Router = express.Router();
 
-Router.route("/donationBar").put(
+Router.route("/donation-bar").put(
   authenticateMiddleware,
   validateUpdateDonationBar,
   updateDonationBar
 );
 
-Router.route("/donationBar/overlay/:overlayId/widget/:widgetDataId").get(
+Router.route("/donation-bar/:widgetDataId").get(
   authenticateMiddleware,
   validateGetDonationBar,
   getDonationBar

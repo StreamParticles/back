@@ -3,7 +3,6 @@ import {
   AlertsSetWidget,
   AlertVariation,
   DonationBarWidget,
-  OverlayData,
   UserAccountStatus,
   UserType,
   WidgetsKinds,
@@ -16,7 +15,7 @@ import logger from "#services/logger";
 import { connectToDatabase } from "#services/mongoose";
 import { ENV } from "#utils/env";
 
-const updateOverlays = (overlays: any[]): OverlayData[] => {
+const updateOverlays = (overlays: any[]): any[] => {
   return overlays.map((overlay) => {
     return {
       _id: overlay._id as Id,

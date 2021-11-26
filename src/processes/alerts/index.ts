@@ -1,61 +1,39 @@
 import {
-  AlertsSetWidget,
+  AlertsSetWidget as AlertsSetWidgetType,
   AlertVariation,
   ErrorKinds,
-  Widget,
-  WidgetsKinds,
 } from "@streamparticles/lib";
 import { Id } from "@streamparticles/lib/out/types/mongoose";
 import { merge } from "lodash";
 import mongoose from "mongoose";
 
-import User from "#models/User";
-import { isEqualId } from "#utils/mongoose";
+import AlertsSetWidget from "#models/widgetsModels/AlertsSetWidget";
 
 export const createAlertVariation = async (
   userId: Id,
-  overlayId: Id,
   widgetId: Id
 ): Promise<void> => {
-  const variationId = mongoose.Types.ObjectId();
-
-  const user = await User.findOne({
-    _id: userId,
-    "integrations.overlays._id": overlayId,
+  const widget = await AlertsSetWidget.findOne({
+    userId,
+    _id: widgetId,
   })
-    .select({ "integrations.overlays.$": true })
-    .orFail(new Error(ErrorKinds.USER_NOT_FOUND))
+    .select({ variations: true })
+    .orFail(new Error(ErrorKinds.WIDGET_NOT_FOUND))
     .lean();
 
-  const [overlayToUpdate] = user?.integrations?.overlays || [];
+  const newVariation = {
+    _id: mongoose.Types.ObjectId(),
+    name: `Variation ${(widget as AlertsSetWidgetType).variations.length + 1}`,
+  };
 
-  if (!overlayToUpdate) throw new Error(ErrorKinds.OVERLAY_NOT_FOUND);
-
-  const eventuallyUpdateWidget = (widget: Widget) =>
-    isEqualId(widget._id, widgetId)
-      ? {
-          ...widget,
-          variations: [
-            ...(widget as AlertsSetWidget).variations,
-            {
-              _id: variationId,
-              name: `Variation ${(widget as AlertsSetWidget).variations.length +
-                1}`,
-            },
-          ],
-        }
-      : widget;
-
-  const widgets = overlayToUpdate.widgets.map(eventuallyUpdateWidget);
-
-  await User.updateOne(
+  await AlertsSetWidget.updateOne(
     {
-      _id: userId,
-      "integrations.overlays._id": overlayId,
+      userId,
+      _id: widgetId,
     },
     {
-      $set: {
-        "integrations.overlays.$.widgets": widgets,
+      $push: {
+        variations: newVariation,
       },
     }
   );
@@ -63,31 +41,19 @@ export const createAlertVariation = async (
 
 export const getAlertVariation = async (
   userId: Id,
-  overlayId: Id,
   widgetId: Id,
   variationId: Id
 ): Promise<AlertVariation | null> => {
-  const user = await User.findOne({
-    _id: userId,
-    "integrations.overlays.overlayId": overlayId,
+  const widget = await AlertsSetWidget.findOne({
+    userId,
+    _id: widgetId,
+    "variations._id": variationId,
   })
-    .select({ "integrations.overlays.$": true })
-    .orFail(new Error(ErrorKinds.USER_NOT_FOUND))
+    .select({ "variations.$": true })
+    .orFail(new Error(ErrorKinds.WIDGET_NOT_FOUND))
     .lean();
 
-  const [overlay] = user?.integrations?.overlays || [];
-
-  if (!overlay) throw new Error(ErrorKinds.OVERLAY_NOT_FOUND);
-
-  const widget = overlay.widgets.find((widget) =>
-    isEqualId(widgetId, widget._id)
-  );
-
-  if (!widget) throw new Error(ErrorKinds.WIDGET_NOT_FOUND);
-
-  const variation = (widget as AlertsSetWidget).variations.find((variation) =>
-    isEqualId(variationId, variation._id)
-  );
+  const [variation] = widget.variations;
 
   if (!variation) throw new Error(ErrorKinds.VARIATION_NOT_FOUND);
 
@@ -96,48 +62,23 @@ export const getAlertVariation = async (
 
 export const updateAlertVariation = async (
   userId: Id,
-  overlayId: Id,
   widgetId: Id,
   variationId: Id,
   payload: AlertVariation
 ): Promise<void> => {
-  const user = await User.findOne({
-    _id: userId,
-    "integrations.overlays._id": overlayId,
-  })
-    .select({ "integrations.overlays.$": true })
-    .orFail(new Error(ErrorKinds.USER_NOT_FOUND))
-    .lean();
+  const variation = await getAlertVariation(userId, widgetId, variationId);
 
-  const [overlayToUpdate] = user?.integrations?.overlays || [];
+  const merged = merge(variation, payload);
 
-  if (!overlayToUpdate) throw new Error(ErrorKinds.OVERLAY_NOT_FOUND);
-
-  const eventuallyUpdateVariation = (variation: AlertVariation) =>
-    isEqualId(variationId, variation._id)
-      ? merge(variation, payload)
-      : variation;
-
-  const eventuallyUpdateWidget = (widget: Widget) =>
-    isEqualId(widgetId, widget._id) && widget.kind === WidgetsKinds.ALERTS
-      ? {
-          ...widget,
-          variations: (widget as AlertsSetWidget).variations.map(
-            eventuallyUpdateVariation
-          ),
-        }
-      : widget;
-
-  const updatedWidgets = overlayToUpdate.widgets.map(eventuallyUpdateWidget);
-
-  await User.updateOne(
+  await AlertsSetWidget.updateOne(
     {
-      _id: userId,
-      "integrations.overlays._id": overlayId,
+      userId,
+      _id: widgetId,
+      "variations._id": variationId,
     },
     {
       $set: {
-        "integrations.overlays.$.widgets": updatedWidgets,
+        "variations.$": merged,
       },
     }
   );
@@ -145,44 +86,17 @@ export const updateAlertVariation = async (
 
 export const deleteAlertVariation = async (
   userId: Id,
-  overlayId: Id,
   widgetId: Id,
   variationId: Id
 ): Promise<void> => {
-  const user = await User.findOne({
-    _id: userId,
-    "integrations.overlays._id": overlayId,
-  })
-    .select({ "integrations.overlays.$": true })
-    .orFail(new Error(ErrorKinds.USER_NOT_FOUND))
-    .lean();
-
-  const [overlayToUpdate] = user?.integrations?.overlays || [];
-
-  if (!overlayToUpdate) throw new Error(ErrorKinds.OVERLAY_NOT_FOUND);
-
-  const eventuallyUpdateWidget = (widget: Widget) => {
-    return isEqualId(widgetId, widget._id) &&
-      widget.kind === WidgetsKinds.ALERTS
-      ? {
-          ...widget,
-          variations: (widget as AlertsSetWidget).variations.filter(
-            (variation) => !isEqualId(variationId, variation._id)
-          ),
-        }
-      : widget;
-  };
-
-  const updatedWidgets = overlayToUpdate.widgets.map(eventuallyUpdateWidget);
-
-  await User.updateOne(
+  await AlertsSetWidget.updateOne(
     {
-      _id: userId,
-      "integrations.overlays._id": overlayId,
+      userId,
+      _id: widgetId,
     },
     {
-      $set: {
-        "integrations.overlays.$.widgets": updatedWidgets,
+      $pull: {
+        variations: { _id: variationId },
       },
     }
   );

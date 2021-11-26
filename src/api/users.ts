@@ -38,13 +38,13 @@ Router.route("/user/herotag").get(
   getUserData
 );
 
-Router.route("/user/poll-maiar/").post(
+Router.route("/user/blockchain-monitoring/").post(
   authenticateMiddleware,
   validateToggleBlockchainMonitoring,
   toggleBlockchainMonitoring
 );
 
-Router.route("/user/trigger-event").post(
+Router.route("/user/fake-event").post(
   authenticateMiddleware,
   validateTriggerFakeEvent,
   triggerFakeEvent
@@ -62,16 +62,13 @@ Router.route("/user/tiny-amounts").post(
   updateTinyAmountsWording
 );
 
-Router.route("/user/viewers-onboarding-data").post(
-  authenticateMiddleware,
-  validateUpdateViewerOnboardingData,
-  updateViewerOnboardingData
-);
-
-Router.route("/user/viewers-onboarding-data/").get(
-  validateGetViewerOnboardingData,
-  getViewerOnboardingData
-);
+Router.route("/user/viewers-page")
+  .get(validateGetViewerOnboardingData, getViewerOnboardingData)
+  .post(
+    authenticateMiddleware,
+    validateUpdateViewerOnboardingData,
+    updateViewerOnboardingData
+  );
 
 Router.route("/user/webhooks/").post(
   authenticateMiddleware,

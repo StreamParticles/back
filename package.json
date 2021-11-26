@@ -24,7 +24,7 @@
   },
   "dependencies": {
     "@elrondnetwork/erdjs": "^7.0.0",
-    "@streamparticles/lib": "^0.1.25",
+    "@streamparticles/lib": "^0.1.27",
     "@types/qrcode": "^1.4.1",
     "axios": "^0.21.1",
     "bcrypt": "^5.0.1",

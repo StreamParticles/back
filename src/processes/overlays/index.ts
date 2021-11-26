@@ -1,27 +1,36 @@
 import {
-  AlertsSetWidget,
+  AlertsSetWidget as AlertsSetWidgetType,
   AlertsSetWidgetPosition,
   DonationBarPosition,
-  DonationBarWidget,
+  DonationBarWidget as DonationBarWidgetType,
   ErrorKinds,
-  hasVariations,
   OverlayData,
   Position,
-  Widget,
+  Widget as WidgetType_,
   WidgetPosition,
   WidgetsKinds,
-  WidgetType,
 } from "@streamparticles/lib";
 import { Id } from "@streamparticles/lib/out/types/mongoose";
 import { keyBy, omit, pick, uniq } from "lodash";
-import mongoose from "mongoose";
 import { nanoid } from "nanoid";
 
 import { colors } from "#constants/colors";
+import Overlay from "#models/Overlay";
 import User from "#models/User";
+import AlertsSetWidget from "#models/widgetsModels/AlertsSetWidget";
+import DonationBarWidget from "#models/widgetsModels/DonationBarWidget";
+import Widget from "#models/widgetsModels/Widget";
 import { merge } from "#utils/merge";
-import { isEqualId } from "#utils/mongoose";
-import { defaultVariationName, defaultWidgetName } from "#utils/overlays";
+import { ObjectId } from "#utils/mongoose";
+
+const widgetNameMapper = {
+  [WidgetsKinds.ALERTS]: "Alerts set",
+  [WidgetsKinds.DONATION_BAR]: "Donation bar",
+  [WidgetsKinds.DONATIONS_LISTING]: "Donations Listings",
+  [WidgetsKinds.CUSTOM_WIDGET]: "Custom Widget",
+  [WidgetsKinds.NFTs]: "NFTs",
+  [WidgetsKinds.PARTICLES_FALLS]: "Particles Falls",
+};
 
 const POSITION_FIELDS = ["top", "left", "width", "height"];
 
@@ -35,52 +44,16 @@ const randomColor = (): string => {
   return color.value;
 };
 
-export const getUserOverlay = async (
-  overlayId: Id
-): Promise<OverlayData | null> => {
-  const user = await User.findOne({
-    "integrations.overlays._id": overlayId,
-  })
-    .select({ "integrations.overlays.$": true })
-    .lean();
-
-  const overlay = user?.integrations?.overlays?.[0];
-
-  if (!overlay) throw new Error(ErrorKinds.OVERLAY_NOT_FOUND);
-
-  return overlay;
-};
-
-export const getUserOverlayByGeneratedLink = async (
-  overlayLink: Id
-): Promise<OverlayData | null> => {
-  const user = await User.findOne({
-    "integrations.overlays.generatedLink": overlayLink,
-  })
-    .select({ "integrations.overlays.$": true })
-    .lean();
-
-  const overlay = user?.integrations?.overlays?.[0];
-
-  if (!overlay) throw new Error(ErrorKinds.OVERLAY_NOT_FOUND);
-
-  return overlay;
-};
-
-export const getManyUserOverlays = async (
-  userId: Id
-): Promise<OverlayData[]> => {
-  const user = await User.findById(userId)
-    .select({ "integrations.overlays": true })
-    .lean();
-
-  return user?.integrations?.overlays || [];
-};
+/** OVERLAY */
 
 export const createOverlay = async (userId: Id): Promise<void> => {
-  const user = await User.findById(userId)
-    .select({ "integrations.overlays": true })
-    .lean();
+  const overlays = await getManyUserOverlays(userId);
+
+  const created = await Overlay.create({
+    generatedLink: nanoid(50),
+    color: randomColor(),
+    name: `Overlay ${overlays.length + 1}`,
+  });
 
   await User.updateOne(
     {
@@ -88,26 +61,39 @@ export const createOverlay = async (userId: Id): Promise<void> => {
     },
     {
       $push: {
-        "integrations.overlays": {
-          generatedLink: nanoid(50),
-          color: randomColor(),
-          name: `Overlay ${(user?.integrations?.overlays?.length || 0) + 1}`,
-        },
+        "integrations.overlays": created._id,
       },
     }
   );
+};
+
+export const getOverlay = async (
+  userId: Id,
+  overlayId: Id
+): Promise<OverlayData> => {
+  const overlay = await Overlay.findOne({ _id: overlayId, userId })
+    .populate({ path: "widgets" })
+    .orFail(new Error(ErrorKinds.OVERLAY_NOT_FOUND))
+    .lean();
+
+  return overlay;
 };
 
 export const deleteOverlay = async (
   userId: Id,
   overlayId: Id
 ): Promise<void> => {
+  await Overlay.deleteOne({
+    _id: overlayId,
+    userId,
+  });
+
   await User.updateOne(
     {
       _id: userId,
-      "integrations.overlays._id": overlayId,
+      "integrations.overlays": overlayId,
     },
-    { $pull: { "integrations.overlays": { _id: overlayId } } }
+    { $pull: { "integrations.overlays": overlayId } }
   );
 };
 
@@ -116,167 +102,23 @@ export const updateOverlayName = async (
   overlayId: Id,
   overlayName: string
 ): Promise<void> => {
-  await User.updateOne(
+  await Overlay.updateOne(
     {
-      _id: userId,
-      "integrations.overlays._id": overlayId,
+      userId,
+      _id: overlayId,
     },
     {
       $set: {
-        "integrations.overlays.$.name": overlayName,
+        name: overlayName,
       },
     }
   );
 };
 
-export const getOverlayFonts = async (
-  overlayLink: string
-): Promise<string[]> => {
-  const user = await User.findOne({
-    "integrations.overlays.generatedLink": overlayLink,
-  })
-    .select({ "integrations.overlays.$": true })
-    .orFail(new Error(ErrorKinds.USER_NOT_FOUND))
-    .lean();
-
-  const overlay = user?.integrations?.overlays?.[0];
-
-  if (!overlay) throw new Error(ErrorKinds.OVERLAY_NOT_FOUND);
-
-  const fonts = overlay.widgets
-    .flatMap((widget) => {
-      switch (widget.kind) {
-        case WidgetsKinds.ALERTS:
-          return (widget as AlertsSetWidget).variations.map(
-            ({ text }) => text?.fontFamily
-          );
-        case WidgetsKinds.DONATION_BAR:
-          return (widget as DonationBarWidget).data.text?.fontFamily;
-        default:
-          return null;
-      }
-    })
-    .filter(Boolean) as string[];
-
-  return uniq(fonts);
-};
-
-export const getOverlayWidgets = async (overlayId: Id): Promise<Widget[]> => {
-  const user = await User.findOne({
-    "integrations.overlays._id": overlayId,
-  })
-    .select({ "integrations.overlays.$": true })
-    .orFail(new Error(ErrorKinds.USER_NOT_FOUND))
-    .lean();
-
-  const [overlay] = user?.integrations?.overlays || [];
-
-  if (!overlay) throw new Error(ErrorKinds.OVERLAY_NOT_FOUND);
-
-  return overlay.widgets;
-};
-
-export const getOverlayWidget = async (
-  overlayId: Id,
-  widgetId: Id
-): Promise<Widget> => {
-  const user = await User.findOne({
-    "integrations.overlays._id": overlayId,
-  })
-    .select({ "integrations.overlays.$": true })
-    .orFail(new Error(ErrorKinds.USER_NOT_FOUND))
-    .lean();
-
-  const [overlay] = user?.integrations?.overlays || [];
-
-  if (!overlay) throw new Error(ErrorKinds.OVERLAY_NOT_FOUND);
-
-  const widget = overlay.widgets.find((widget) =>
-    isEqualId(String(widget._id), String(widgetId))
-  );
-
-  if (!widget) throw new Error(ErrorKinds.WIDGET_NOT_FOUND);
-
-  return widget;
-};
-
-export const addOverlayWidget = async (
-  userId: Id,
-  overlayId: Id,
-  widgetKind: WidgetsKinds
-): Promise<void> => {
-  const user = await User.findOne({
-    _id: userId,
-    "integrations.overlays._id": overlayId,
-  })
-    .select({ "integrations.overlays.$": true })
-    .orFail(new Error(ErrorKinds.USER_NOT_FOUND))
-    .lean();
-
-  if (!user?.integrations?.overlays?.[0])
-    throw new Error(ErrorKinds.OVERLAY_NOT_FOUND);
-
-  await User.updateOne(
-    {
-      "integrations.overlays._id": overlayId,
-    },
-    {
-      $push: {
-        "integrations.overlays.$.widgets": {
-          kind: widgetKind,
-          name: defaultWidgetName(user.integrations.overlays[0], widgetKind),
-        },
-      },
-      $inc: { "integrations.overlays.$.widgetsCount": 1 },
-    }
-  );
-};
-
-export const updateWidgetName = async (
-  userId: Id,
-  overlayId: Id,
-  widgetId: Id,
-  widgetName: string
-): Promise<void> => {
-  const user = await User.findOne({
-    _id: userId,
-    "integrations.overlays._id": overlayId,
-  })
-    .select({ "integrations.overlays.$": true })
-    .orFail(new Error(ErrorKinds.USER_NOT_FOUND))
-    .lean();
-
-  const [overlayToUpdate] = user?.integrations?.overlays || [];
-
-  if (!overlayToUpdate) throw new Error(ErrorKinds.OVERLAY_NOT_FOUND);
-
-  const eventuallyUpdateWidget = (widget: Widget) =>
-    isEqualId(widgetId, widget._id)
-      ? {
-          ...widget,
-          name: widgetName,
-        }
-      : widget;
-
-  const updatedWidgets = overlayToUpdate.widgets.map(eventuallyUpdateWidget);
-
-  await User.updateOne(
-    {
-      _id: userId,
-      "integrations.overlays._id": overlayId,
-    },
-    {
-      $set: {
-        "integrations.overlays.$.widgets": updatedWidgets,
-      },
-    }
-  );
-};
-
-const updateAlertsSetPositions = (
-  widget: AlertsSetWidget,
+const updateAlertsSetPositions = async (
+  widget: AlertsSetWidgetType,
   widgetPosition: AlertsSetWidgetPosition
-) => {
+): Promise<void> => {
   const variationPositionById = keyBy(widgetPosition.variations, "_id");
 
   const variations = widget.variations.map((variation) => {
@@ -299,16 +141,21 @@ const updateAlertsSetPositions = (
     };
   });
 
-  return {
-    ...widget,
-    variations,
-  };
+  await AlertsSetWidget.updateOne(
+    { _id: widget._id },
+    {
+      $set: {
+        ...widget,
+        variations,
+      } as AlertsSetWidgetType,
+    }
+  );
 };
 
-const updateDonationBarPositions = (
-  widget: DonationBarWidget,
+const updateDonationBarPositions = async (
+  widget: DonationBarWidgetType,
   widgetPosition: DonationBarPosition
-) => {
+): Promise<void> => {
   const position = widgetPosition.data;
 
   const data = {
@@ -321,224 +168,240 @@ const updateDonationBarPositions = (
     }),
   };
 
-  return {
-    ...widget,
-    data,
-  };
+  await DonationBarWidget.updateOne(
+    { _id: widget._id },
+    {
+      $set: {
+        ...widget,
+        data,
+      } as DonationBarWidgetType,
+    }
+  );
 };
 
 const updateWidgetPosition = (
-  widget: WidgetType,
+  widget: WidgetType_,
   widgetPosition: WidgetPosition
-) => {
+): Promise<void> | void => {
   switch (widget.kind) {
     case WidgetsKinds.ALERTS:
       return updateAlertsSetPositions(
-        widget as AlertsSetWidget,
+        widget as AlertsSetWidgetType,
         widgetPosition as AlertsSetWidgetPosition
       );
     case WidgetsKinds.DONATION_BAR:
       return updateDonationBarPositions(
-        widget as DonationBarWidget,
+        widget as DonationBarWidgetType,
         widgetPosition as DonationBarPosition
       );
+    default:
+      return;
   }
 };
 
-export const updateOverlayWidgetsPositions = async (
+export const updateWidgetsPositions = async (
   userId: Id,
-  overlayId: Id,
   widgetsPositions: WidgetPosition[]
 ): Promise<void> => {
-  // Check if everything is fine first (to remove and replace by mongo transactions)
-  const user = await User.findOne({
-    _id: userId,
-    "integrations.overlays._id": overlayId,
-  })
-    .select({ "integrations.overlays.$": true })
-    .orFail(new Error(ErrorKinds.USER_NOT_FOUND))
-    .lean();
+  const ids = widgetsPositions.map(({ _id }) => _id);
 
-  if (!user?.integrations?.overlays?.[0])
-    throw new Error(ErrorKinds.OVERLAY_NOT_FOUND);
-
-  const [overlay] = user?.integrations?.overlays;
+  const widgets: WidgetType_[] = await Widget.find({
+    _id: { $in: ids },
+    userId,
+  }).lean();
 
   const widgetPositionsById = keyBy(widgetsPositions, "_id");
 
-  const updatedPositionWidgets: Widget[] = overlay.widgets.map((widget) => {
-    const widgetPosition = widgetPositionsById[String(widget._id)];
+  await Promise.all(
+    widgets.map((widget) =>
+      updateWidgetPosition(widget, widgetPositionsById[String(widget._id)])
+    )
+  );
+};
 
-    return widgetPosition
-      ? (updateWidgetPosition(widget, widgetPosition) as Widget)
-      : widget;
+/** OVERLAY BY LINK */
+
+export const getOverlayByGeneratedLink = async (
+  overlayLink: Id
+): Promise<OverlayData> => {
+  const overlay = await Overlay.findOne({
+    generatedLink: overlayLink as string,
+  })
+    .populate({ path: "widgets" })
+    .orFail(new Error(ErrorKinds.OVERLAY_NOT_FOUND))
+    .lean();
+
+  return overlay;
+};
+
+export const getOverlayWidgetsByGeneratedLink = async (
+  overlayLink: string
+): Promise<WidgetType_[]> => {
+  const overlay = await getOverlayByGeneratedLink(overlayLink);
+
+  const widgets = await Widget.find({ _id: { $in: overlay.widgets } })
+    .populate({ path: "widgets" })
+    .lean();
+
+  return widgets;
+};
+
+export const getOverlayFonts = async (
+  overlayLink: string
+): Promise<string[]> => {
+  const widgets = await getOverlayWidgetsByGeneratedLink(overlayLink);
+
+  const fonts = widgets
+    .flatMap((widget) => {
+      switch (widget.kind) {
+        case WidgetsKinds.ALERTS:
+          return (widget as AlertsSetWidgetType).variations.map(
+            ({ text }) => text?.fontFamily
+          );
+        case WidgetsKinds.DONATION_BAR:
+          return (widget as DonationBarWidgetType).data.text?.fontFamily;
+        default:
+          return null;
+      }
+    })
+    .filter(Boolean) as string[];
+
+  return uniq(fonts);
+};
+
+/** WIDGET */
+
+export const createWidget = async (
+  userId: Id,
+  overlayId: Id,
+  widgetKind: WidgetsKinds
+): Promise<void> => {
+  const created = await Widget.create({
+    kind: widgetKind,
+    name: widgetNameMapper[widgetKind],
+    userId,
   });
 
-  await User.updateOne(
+  await Overlay.updateOne(
     {
-      "integrations.overlays._id": overlayId,
+      _id: overlayId,
+      userId,
     },
     {
-      $set: {
-        "integrations.overlays.$.widgets": updatedPositionWidgets,
+      $push: {
+        widgets: created._id,
       },
     }
   );
 };
 
-export const deleteOverlayWidget = async (
-  userId: Id,
-  overlayId: Id,
-  widgetId: Id
-): Promise<void> => {
-  const user = await User.findOne({
-    _id: userId,
-    "integrations.overlays._id": overlayId,
-  })
-    .select({ "integrations.overlays.$": true })
-    .orFail(new Error(ErrorKinds.USER_NOT_FOUND))
+export const getWidget = async (widgetId: Id): Promise<WidgetType_> => {
+  const widget = await Widget.findById(widgetId)
+    .orFail(new Error(ErrorKinds.WIDGET_NOT_FOUND))
     .lean();
 
-  const [overlayToUpdate] = user?.integrations?.overlays || [];
+  return widget;
+};
 
-  if (!overlayToUpdate) throw new Error(ErrorKinds.OVERLAY_NOT_FOUND);
+export const deleteWidget = async (userId: Id, widgetId: Id): Promise<void> => {
+  await Widget.deleteOne({ userId, _id: widgetId });
 
-  const updatedWidgets = overlayToUpdate.widgets.filter(
-    (widget) => !isEqualId(widget._id, widgetId)
-  );
-
-  await User.updateOne(
+  await Overlay.updateMany(
     {
-      _id: userId,
-      "integrations.overlays._id": overlayId,
+      widgets: widgetId,
     },
     {
-      $set: {
-        "integrations.overlays.$.widgets": updatedWidgets,
+      $pull: {
+        widgets: widgetId,
       },
     }
   );
+};
+
+export const updateWidgetName = async (
+  userId: Id,
+  widgetId: Id,
+  widgetName: string
+): Promise<void> => {
+  await Widget.updateOne(
+    {
+      _id: widgetId,
+      userId,
+    },
+    {
+      $set: {
+        name: widgetName,
+      },
+    }
+  );
+};
+
+export const duplicateOverlay = async (
+  userId: Id,
+  overlayId: Id
+): Promise<void> => {
+  // const overlayToDuplicate = await Overlay.findOne({ userId, _id: overlayId })
+  //   .orFail(new Error(ErrorKinds.OVERLAY_NOT_FOUND))
+  //   .lean();
+  // const duplicated = await Overlay.create({ ...overlayToDuplicate });
+  // await User.updateOne(
+  //   { _id: userId },
+  //   { $push: { "integrations.overlays": duplicated._id } }
+  // );
 };
 
 export const duplicateWidget = async (
   userId: Id,
-  overlayId: Id,
   widgetId: Id,
-  destOverlay: Id
+  destOverlayId: Id
 ): Promise<void> => {
-  const user = await User.findById(userId)
-    .select({ "integrations.overlays": true })
-    .orFail(new Error(ErrorKinds.USER_NOT_FOUND))
+  const widgetToDuplicate = await Widget.findOne({ userId, _id: widgetId })
+    .select({ _id: false, "variations._id": false, "data._id": false })
+    .orFail(new Error(ErrorKinds.WIDGET_NOT_FOUND))
     .lean();
 
-  const sourceOverlay = user.integrations?.overlays?.find(({ _id }) =>
-    isEqualId(_id, overlayId)
-  );
+  const duplicated = await Widget.create({
+    ...omit(widgetToDuplicate, ["_id"]),
+  });
 
-  if (!sourceOverlay) throw new Error(ErrorKinds.OVERLAY_NOT_FOUND);
-
-  const destinationOverlay = user.integrations?.overlays?.find(({ _id }) =>
-    isEqualId(_id, destOverlay)
-  );
-
-  if (!destinationOverlay) throw new Error(ErrorKinds.OVERLAY_NOT_FOUND);
-
-  const widgetToDuplicate = sourceOverlay.widgets.find(({ _id }) =>
-    isEqualId(_id, widgetId)
-  );
-
-  await User.updateOne(
-    {
-      _id: userId,
-      "integrations.overlays._id": destOverlay,
-    },
-    {
-      $push: {
-        "integrations.overlays.$.widgets": {
-          ...widgetToDuplicate,
-          _id: mongoose.Types.ObjectId(),
-          name: defaultWidgetName(
-            destinationOverlay,
-            widgetToDuplicate?.kind as WidgetsKinds,
-            widgetToDuplicate?.name
-          ),
-          ...(hasVariations(widgetToDuplicate)
-            ? {
-                variations: widgetToDuplicate.variations.map((variation) =>
-                  omit(variation, ["_id"])
-                ),
-              }
-            : { data: omit(widgetToDuplicate?.data, ["_id"]) }),
-        },
-      },
-    }
+  await Overlay.updateOne(
+    { _id: destOverlayId, userId },
+    { $push: { widgets: duplicated._id } }
   );
 };
 
 export const duplicateVariation = async (
   userId: Id,
-  overlayId: Id,
   widgetId: Id,
   variationId: Id,
-  destOverlay: Id,
   destWidget: Id
 ): Promise<void> => {
-  const user = await User.findById(userId)
-    .select({ "integrations.overlays": true })
-    .orFail(new Error(ErrorKinds.USER_NOT_FOUND))
+  const sourceWidget: AlertsSetWidgetType = await Widget.findOne({
+    userId,
+    _id: widgetId,
+    "variations._id": ObjectId(variationId as string),
+  })
+    .select({ "variations.$": true, kind: true })
+    .orFail(new Error(ErrorKinds.WIDGET_NOT_FOUND))
     .lean();
 
-  const sourceOverlay = user.integrations?.overlays?.find(({ _id }) =>
-    isEqualId(_id, overlayId)
+  const [variationToDuplicate] = sourceWidget.variations;
+
+  await Widget.updateOne(
+    { userId, _id: destWidget, kind: sourceWidget.kind },
+    { $push: { variations: omit(variationToDuplicate, ["_id"]) } }
   );
+};
 
-  if (!sourceOverlay) throw new Error(ErrorKinds.OVERLAY_NOT_FOUND);
+/** MULTIPLE OVERLAY ENDPOINTS */
 
-  const sourceWidget = sourceOverlay.widgets.find(({ _id }) =>
-    isEqualId(_id, widgetId)
-  );
+export const getManyUserOverlays = async (
+  userId: Id
+): Promise<OverlayData[]> => {
+  const overlays = await Overlay.find({ userId })
+    .populate({ path: "widgets" })
+    .orFail(new Error(ErrorKinds.OVERLAY_NOT_FOUND))
+    .lean();
 
-  if (!sourceWidget) throw new Error(ErrorKinds.WIDGET_NOT_FOUND);
-  if (!hasVariations(sourceWidget))
-    throw new Error(ErrorKinds.INVALID_REQUEST_PAYLOAD);
-
-  const variationToDuplicate = sourceWidget.variations.find(({ _id }) =>
-    isEqualId(variationId, _id)
-  );
-
-  if (!variationToDuplicate) throw new Error(ErrorKinds.VARIATION_NOT_FOUND);
-
-  const destinationOverlay = user.integrations?.overlays?.find(({ _id }) =>
-    isEqualId(destOverlay, _id)
-  );
-
-  if (!destinationOverlay) throw new Error(ErrorKinds.OVERLAY_NOT_FOUND);
-
-  const updated = destinationOverlay.widgets.map((widget) =>
-    isEqualId(widget._id, destWidget) && hasVariations(widget)
-      ? {
-          ...widget,
-          variations: [
-            ...widget.variations,
-            {
-              ...variationToDuplicate,
-              _id: mongoose.Types.ObjectId(),
-              name: defaultVariationName(widget, variationToDuplicate?.name),
-            },
-          ],
-        }
-      : widget
-  );
-
-  await User.updateOne(
-    {
-      _id: userId,
-      "integrations.overlays._id": destOverlay,
-    },
-    {
-      $set: {
-        "integrations.overlays.$.widgets": updated,
-      },
-    }
-  );
+  return overlays;
 };

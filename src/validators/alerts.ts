@@ -19,21 +19,7 @@ export const validateCreateAlertVariation = createValidationMiddleware<
 >(
   Joi.object({
     body: Joi.object({
-      overlayId: Joi.string().required(),
       widgetId: Joi.string().required(),
-    }),
-  })
-);
-
-export const validateUpdateAlertVariation = createValidationMiddleware<
-  AuthenticatedRequest<{}, {}, UpdateAlertVariationRequestBody>
->(
-  Joi.object({
-    body: Joi.object({
-      overlayId: Joi.string().required(),
-      widgetId: Joi.string().required(),
-      variationId: Joi.string().required(),
-      variation: variationValidator,
     }),
   })
 );
@@ -43,9 +29,20 @@ export const validateGetAlertVariation = createValidationMiddleware<
 >(
   Joi.object({
     params: Joi.object({
-      overlayId: Joi.string().required(),
       widgetId: Joi.string().required(),
       variationId: Joi.string().required(),
+    }),
+  })
+);
+
+export const validateUpdateAlertVariation = createValidationMiddleware<
+  AuthenticatedRequest<{}, {}, UpdateAlertVariationRequestBody>
+>(
+  Joi.object({
+    body: Joi.object({
+      widgetId: Joi.string().required(),
+      variationId: Joi.string().required(),
+      variation: variationValidator,
     }),
   })
 );
@@ -55,7 +52,6 @@ export const validateDeleteAlertVariation = createValidationMiddleware<
 >(
   Joi.object({
     params: Joi.object({
-      overlayId: Joi.string().required(),
       widgetId: Joi.string().required(),
       variationId: Joi.string().required(),
     }),

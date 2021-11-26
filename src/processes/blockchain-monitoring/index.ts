@@ -5,7 +5,7 @@ import {
 } from "@streamparticles/lib";
 import { Id } from "@streamparticles/lib/out/types/mongoose";
 
-import User, { UserMongooseDocument } from "#models/User";
+import User from "#models/User";
 import { getLastTransactions, getUpdatedBalance } from "#services/elrond";
 import logger from "#services/logger";
 import {
@@ -152,8 +152,8 @@ export const monitorBlockChain = async (
 export const toggleBlockchainMonitoring = async (
   userId: Id,
   isStreaming: boolean
-): Promise<UserMongooseDocument | void> => {
-  const user: UserMongooseDocument | null = await User.findOneAndUpdate(
+): Promise<UserType | void> => {
+  const user: UserType | null = await User.findOneAndUpdate(
     { _id: userId },
     {
       $set: {

@@ -21,12 +21,12 @@ const generateRandomString = (length = 8) => {
 const anonymateCriticalData = async () => {
   const users = await User.find().lean();
 
+  const password = await getHashedPassword("test" as string);
+
   await Promise.all(
     users.map(async (user: UserType) => {
       const userTriggerKey = user?.integrations?.ifttt?.triggerKey;
       const userEventName = user?.integrations?.ifttt?.eventName;
-
-      const password = await getHashedPassword("test" as string);
 
       return User.updateOne(
         { _id: user._id },

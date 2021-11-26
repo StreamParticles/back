@@ -16,7 +16,7 @@ import {
 
 const Router = express.Router();
 
-Router.route("/alerts/variation/")
+Router.route("/alert-variation/")
   .post(
     authenticateMiddleware,
     validateCreateAlertVariation,
@@ -28,9 +28,7 @@ Router.route("/alerts/variation/")
     updateAlertVariation
   );
 
-Router.route(
-  "/alerts/overlay/:overlayId/widget/:widgetId/variation/:variationId"
-)
+Router.route("/alert-variation/:widgetId/variation/:variationId")
   .get(authenticateMiddleware, validateGetAlertVariation, getAlertVariation)
   .delete(
     authenticateMiddleware,

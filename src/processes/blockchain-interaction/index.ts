@@ -6,10 +6,12 @@ import {
   isMockedElrondTransaction,
   MockedElrondTransaction,
   UserType,
+  Widget,
   WidgetsKinds,
 } from "@streamparticles/lib";
 
 import { createDonation } from "#daos/donation";
+import WidgetModel from "#models/widgetsModels/Widget";
 import { getUsername } from "#services/elrond";
 import logger from "#services/logger";
 import { temporizeFn } from "#utils/temporize";
@@ -126,23 +128,21 @@ export const temporisedReactToNewTransaction = temporizeFn(
   reactToNewTransaction
 );
 
-const resolveDelay = (user: UserType) => {
+const resolveDelay = (widgets: Widget[]) => {
   const delays = [
     10,
-    ...(user.integrations?.overlays?.flatMap(({ widgets }) =>
-      widgets.flatMap((widget) => {
-        switch (widget.kind) {
-          case WidgetsKinds.ALERTS:
-            return (widget as AlertsSetWidget).variations.flatMap(
-              (variation) => variation.duration || 0
-            );
-          case WidgetsKinds.DONATION_BAR:
-            return (widget as DonationBarWidget).data.reaction?.duration || 0;
-          default:
-            return 10;
-        }
-      })
-    ) || []),
+    ...widgets.flatMap((widget) => {
+      switch (widget.kind) {
+        case WidgetsKinds.ALERTS:
+          return (widget as AlertsSetWidget).variations.flatMap(
+            (variation) => variation.duration || 0
+          );
+        case WidgetsKinds.DONATION_BAR:
+          return (widget as DonationBarWidget).data.reaction?.duration || 0;
+        default:
+          return 10;
+      }
+    }),
   ];
 
   const maxDelaySecond = Math.max(...delays);
@@ -154,7 +154,8 @@ export const reactToManyTransactions = async (
   transactions: ElrondTransaction[],
   user: UserType
 ): Promise<void> => {
-  const delay = resolveDelay(user);
+  const userWidgets = await WidgetModel.find({ userId: user._id }).lean();
+  const delay = resolveDelay(userWidgets);
 
   for (const transaction of transactions) {
     await temporisedReactToNewTransaction(
@@ -185,7 +186,9 @@ export const triggerFakeEvent = async (
   };
 
   if (user) {
-    const delay = resolveDelay(user);
+    const userWidgets = await WidgetModel.find({ userId: user._id }).lean();
+
+    const delay = resolveDelay(userWidgets);
 
     temporisedReactToNewTransaction(
       user.herotag as string,

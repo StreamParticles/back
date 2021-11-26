@@ -1,18 +1,15 @@
-import {
-  AlertsSetWidget,
-  OverlayData,
-  UserType,
-  WidgetsKinds,
-} from "@streamparticles/lib";
+import { AlertsSetWidget, UserType, WidgetsKinds } from "@streamparticles/lib";
 import mongoose from "mongoose";
 
+import Overlay from "#models/Overlay";
 import User from "#models/User";
+import Widget from "#models/widgetsModels/Widget";
 import { connectToDatabase } from "#services/mongoose";
 import factories from "#utils/tests";
 
 import {
-  addOverlayWidget,
-  deleteOverlayWidget,
+  createWidget,
+  deleteWidget,
   duplicateVariation,
   duplicateWidget,
   updateWidgetName,
@@ -27,68 +24,77 @@ describe("Overlays Widgets integration test", () => {
     mongoose.disconnect();
   });
 
-  describe("addOverlayWidget", () => {
+  describe("createWidget", () => {
     let user: UserType;
     const overlayId = mongoose.Types.ObjectId();
 
     beforeAll(async () => {
       user = await factories.user.create({
         integrations: {
-          overlays: [factories.overlay.build({ _id: overlayId, widgets: [] })],
+          overlays: [overlayId],
         },
+      });
+
+      await factories.overlay.create({
+        _id: overlayId,
+        userId: user._id,
+        widgets: [],
       });
     });
 
     test("should add a widget to overlay", async () => {
-      await addOverlayWidget(user._id, overlayId, WidgetsKinds.DONATION_BAR);
+      await createWidget(user._id, overlayId, WidgetsKinds.DONATION_BAR);
 
-      const updated = await User.findById(user._id).lean();
+      const overlay = await Overlay.findById(overlayId).lean();
 
-      const [overlay] = updated?.integrations?.overlays as OverlayData[];
+      expect(overlay).toBeDefined();
+      expect(overlay?.widgets).toHaveLength(1);
 
-      expect(overlay.widgets).toHaveLength(1);
+      const created = await Widget.findById(overlay?.widgets[0]).lean();
 
-      const [widget] = overlay.widgets;
-
-      expect(widget).toHaveProperty("kind", WidgetsKinds.DONATION_BAR);
-      expect(widget).toHaveProperty("name", "Donation bar 0");
+      expect(created).toHaveProperty("kind", WidgetsKinds.DONATION_BAR);
+      expect(created).toHaveProperty("name", "Donation bar");
     });
   });
 
-  describe("deleteOverlayWidget", () => {
+  describe("deleteWidget", () => {
     let user: UserType;
     const overlayId = mongoose.Types.ObjectId();
     const widgetToKeepId = mongoose.Types.ObjectId();
     const widgetToDeleteId = mongoose.Types.ObjectId();
+    const userId = mongoose.Types.ObjectId();
 
     beforeAll(async () => {
+      const widgets = await Promise.all([
+        factories.alertsSet.create({ _id: widgetToKeepId, userId }),
+        factories.alertsSet.create({ _id: widgetToDeleteId, userId }),
+      ]);
+
+      await factories.overlay.create({
+        _id: overlayId,
+        userId,
+        widgets: widgets.map(({ _id }) => _id),
+      });
+
       user = await factories.user.create({
+        _id: userId,
         integrations: {
-          overlays: [
-            factories.overlay.build({
-              _id: overlayId,
-              widgets: [
-                factories.alertsSet.build({ _id: widgetToKeepId }),
-                factories.alertsSet.build({ _id: widgetToDeleteId }),
-              ],
-            }),
-          ],
+          overlays: [overlayId],
         },
       });
     });
 
     test("should delete a widget from overlay", async () => {
-      await deleteOverlayWidget(user._id, overlayId, widgetToDeleteId);
+      await deleteWidget(user._id, widgetToDeleteId);
 
-      const updated = await User.findById(user._id).lean();
+      const updatedOverlay = await Overlay.findById(overlayId).lean();
 
-      expect(updated?.integrations?.overlays).toHaveLength(1);
+      expect(updatedOverlay?.widgets).toHaveLength(1);
+      expect(updatedOverlay?.widgets[0]).toHaveProperty("_id", widgetToKeepId);
 
-      const overlay = updated?.integrations?.overlays?.[0] as OverlayData;
+      const widget = await Widget.findById(widgetToDeleteId).lean();
 
-      expect(overlay.widgets).toHaveLength(1);
-
-      expect(overlay.widgets[0]).toHaveProperty("_id", widgetToKeepId);
+      expect(widget).toBeNull();
     });
   });
 
@@ -101,123 +107,85 @@ describe("Overlays Widgets integration test", () => {
       name: "Variation To Duplicate",
     });
 
-    const sameOverlayWidgetId = mongoose.Types.ObjectId();
-
     const destOverlayId = mongoose.Types.ObjectId();
-    const destOverlayWidgetId = mongoose.Types.ObjectId();
+    const destWidgetId = mongoose.Types.ObjectId();
 
     beforeEach(async () => {
+      const userId = mongoose.Types.ObjectId();
+      const widgets = await Promise.all([
+        factories.alertsSet.create({
+          _id: widgetId,
+          userId,
+          variations: [variationToDuplicate],
+        }),
+        factories.alertsSet.create({
+          _id: destWidgetId,
+          userId,
+          variations: [],
+        }),
+      ]);
+
+      const overlays = await Promise.all([
+        factories.overlay.create({
+          _id: overlayId,
+          userId,
+          widgets: [widgets[0]._id],
+        }),
+        factories.overlay.create({
+          _id: destOverlayId,
+          userId,
+          widgets: [widgets[1]._id],
+        }),
+      ]);
+
       user = await factories.user.create({
+        _id: userId,
         integrations: {
-          overlays: [
-            factories.overlay.build({
-              _id: overlayId,
-              widgets: [
-                factories.alertsSet.build({
-                  _id: widgetId,
-                  variations: [variationToDuplicate],
-                }),
-                factories.alertsSet.build({
-                  _id: sameOverlayWidgetId,
-                  variations: [],
-                }),
-              ],
-            }),
-            factories.overlay.build({
-              _id: destOverlayId,
-              widgets: [
-                factories.alertsSet.build({
-                  _id: destOverlayWidgetId,
-                  variations: [],
-                }),
-              ],
-            }),
-          ],
+          overlays: overlays.map(({ _id }) => _id),
         },
       });
     });
 
     afterEach(async () => {
-      await User.deleteOne({ _id: user._id });
+      await User.deleteMany();
+      await Widget.deleteMany();
+      await Overlay.deleteMany();
     });
 
     test("should duplicate a variation in the same widget", async () => {
       // destOverlay = sourceOverlay & destWidget = sourceWidget
       await duplicateVariation(
         user._id,
-        overlayId,
         widgetId,
         variationToDuplicate._id,
-        overlayId,
         widgetId
       );
 
-      const updated = await User.findById(user._id).lean();
+      const updated = await Widget.findById(widgetId).lean();
 
-      const overlay = updated?.integrations?.overlays?.[0] as OverlayData;
-
-      expect(overlay.widgets).toHaveLength(2);
-
-      // Widget at index 0 is the source of duplicated variation
-      const variations = (overlay.widgets[0] as AlertsSetWidget).variations;
+      const { variations } = updated as AlertsSetWidget;
 
       expect(variations).toHaveLength(2);
 
       const variation = variations[1];
-
-      expect(variation).toHaveProperty("name", "Variation To Duplicate copy 1");
-
-      // TO-DO check variation content
-    });
-
-    test("should duplicate a variation in another widget from same overlay", async () => {
-      // destOverlay = sourceOverlay & destWidget != sourceWidget
-      await duplicateVariation(
-        user._id,
-        overlayId,
-        widgetId,
-        variationToDuplicate._id,
-        overlayId,
-        sameOverlayWidgetId
-      );
-
-      const updated = await User.findById(user._id).lean();
-
-      const overlay = updated?.integrations?.overlays?.[0] as OverlayData;
-
-      expect(overlay.widgets).toHaveLength(2);
-
-      // Widget at index 1 is another widget from same overlay
-      const variations = (overlay.widgets[1] as AlertsSetWidget).variations;
-
-      expect(variations).toHaveLength(1);
-
-      const [variation] = variations;
 
       expect(variation).toHaveProperty("name", "Variation To Duplicate");
 
       // TO-DO check variation content
     });
 
-    test("should duplicate a variation in another widget from another overlay", async () => {
-      // destOverlay != sourceOverlay
+    test("should duplicate a variation in another widget", async () => {
+      // destOverlay = sourceOverlay & destWidget != sourceWidget
       await duplicateVariation(
         user._id,
-        overlayId,
         widgetId,
         variationToDuplicate._id,
-        destOverlayId,
-        destOverlayWidgetId
+        destWidgetId
       );
 
-      const updated = await User.findById(user._id).lean();
+      const updated = await Widget.findById(destWidgetId).lean();
 
-      // Overlay at index 1 is another overlay
-      const overlay = updated?.integrations?.overlays?.[1] as OverlayData;
-
-      expect(overlay.widgets).toHaveLength(1);
-
-      const variations = (overlay.widgets[0] as AlertsSetWidget).variations;
+      const { variations } = updated as AlertsSetWidget;
 
       expect(variations).toHaveLength(1);
 
@@ -233,63 +201,67 @@ describe("Overlays Widgets integration test", () => {
     let user: UserType;
     const overlayId = mongoose.Types.ObjectId();
     const widgetId = mongoose.Types.ObjectId();
-    const widgetToDuplicate = factories.donationBar.build({
-      _id: widgetId,
-      name: "Widget To Duplicate",
-    });
 
     const destOverlayId = mongoose.Types.ObjectId();
 
     beforeEach(async () => {
+      const userId = mongoose.Types.ObjectId();
+      const widgetToDuplicate = await factories.donationBar.create({
+        _id: widgetId,
+        userId,
+        name: "Widget To Duplicate",
+      });
+
+      const overlays = await Promise.all([
+        factories.overlay.create({
+          _id: overlayId,
+          userId,
+          widgets: [widgetToDuplicate._id],
+        }),
+        factories.overlay.create({
+          _id: destOverlayId,
+          userId,
+          widgets: [],
+        }),
+      ]);
+
       user = await factories.user.create({
+        _id: userId,
         integrations: {
-          overlays: [
-            factories.overlay.build({
-              _id: overlayId,
-              widgets: [widgetToDuplicate],
-            }),
-            factories.overlay.build({
-              _id: destOverlayId,
-              widgets: [],
-            }),
-          ],
+          overlays: overlays.map(({ _id }) => _id),
         },
       });
     });
 
     afterEach(async () => {
-      await User.deleteOne({ _id: user._id });
+      await User.deleteMany();
+      await Widget.deleteMany();
+      await Overlay.deleteMany();
     });
 
     test("should duplicate a widget in the same overlay", async () => {
       // destOverlay = sourceOverlay
-      await duplicateWidget(user._id, overlayId, widgetId, overlayId);
+      await duplicateWidget(user._id, widgetId, overlayId);
 
-      const updated = await User.findById(user._id).lean();
+      const updated = await Overlay.findById(overlayId).lean();
 
-      // Overlay at index 0 is source overlay
-      const overlay = updated?.integrations?.overlays?.[0] as OverlayData;
+      expect(updated?.widgets).toHaveLength(2);
 
-      expect(overlay.widgets).toHaveLength(2);
+      const duplicated = await Widget.findById(updated?.widgets[1]).lean();
 
-      const duplicated = overlay.widgets[1] as AlertsSetWidget;
-
-      expect(duplicated).toHaveProperty("name", "Widget To Duplicate copy 1");
+      expect(duplicated).toHaveProperty("name", "Widget To Duplicate");
 
       // TO-DO check widget content
     });
 
     test("should duplicate a widget in another overlay", async () => {
-      await duplicateWidget(user._id, overlayId, widgetId, destOverlayId);
+      await duplicateWidget(user._id, widgetId, destOverlayId);
 
-      const updated = await User.findById(user._id).lean();
+      const updated = await Overlay.findById(destOverlayId).lean();
 
-      // Overlay at index 1 is another overlay
-      const overlay = updated?.integrations?.overlays?.[1] as OverlayData;
+      expect(updated?.widgets).toHaveLength(1);
 
-      expect(overlay.widgets).toHaveLength(1);
-
-      const duplicated = overlay.widgets[0] as AlertsSetWidget;
+      const duplicated = await Widget.findById(updated?.widgets[0]).lean();
 
       expect(duplicated).toHaveProperty("name", "Widget To Duplicate");
 
@@ -309,32 +281,33 @@ describe("Overlays Widgets integration test", () => {
     const widgetId = mongoose.Types.ObjectId();
 
     beforeAll(async () => {
+      const userId = mongoose.Types.ObjectId();
+      const widget = await factories.alertsSet.create({
+        _id: widgetId,
+        userId,
+        name: "name_to_update",
+      });
+
+      const overlay = await factories.overlay.create({
+        _id: overlayId,
+        userId,
+        widgets: [widget._id],
+      });
+
       user = await factories.user.create({
+        _id: userId,
         integrations: {
-          overlays: [
-            factories.overlay.build({
-              _id: overlayId,
-              widgets: [
-                factories.alertsSet.build({
-                  _id: widgetId,
-                  name: "name_to_update",
-                }),
-              ],
-            }),
-          ],
+          overlays: [overlay._id],
         },
       });
     });
 
     test("should update widget's name", async () => {
-      await updateWidgetName(user._id, overlayId, widgetId, "updated_name");
+      await updateWidgetName(user._id, widgetId, "updated_name");
 
-      const updated = await User.findById(user._id).lean();
+      const updated = await Widget.findById(widgetId).lean();
 
-      // Overlay at index 1 is another overlay
-      const [overlay] = updated?.integrations?.overlays as OverlayData[];
-
-      expect(overlay.widgets[0]).toHaveProperty("name", "updated_name");
+      expect(updated).toHaveProperty("name", "updated_name");
     });
   });
 });
