@@ -2,7 +2,12 @@
 import {
   AlertsSetWidget,
   AlertVariation,
+  BarDisplayAnimations,
+  DonationBarDisplays,
   DonationBarWidget,
+  EnterAnimationKinds,
+  ExitAnimationKinds,
+  LogoAnimations,
   OverlayData,
   UserAccountStatus,
   UserType,
@@ -16,6 +21,42 @@ import logger from "#services/logger";
 import { connectToDatabase } from "#services/mongoose";
 import { ENV } from "#utils/env";
 
+const animationMapper: Record<string, any> = {
+  "slide-up-enter": EnterAnimationKinds.SLIDE_UP,
+  "slide-down-enter": EnterAnimationKinds.SLIDE_DOWN,
+  "slide-left-enter": EnterAnimationKinds.SLIDE_LEFT,
+  "slide-right-enter": EnterAnimationKinds.SLIDE_RIGHT,
+  "fade-in": EnterAnimationKinds.FADE_IN,
+  grow: EnterAnimationKinds.GROW,
+  "slide-up-exit": ExitAnimationKinds.SLIDE_UP,
+  "slide-down-exit": ExitAnimationKinds.SLIDE_DOWN,
+  "slide-left-exit": ExitAnimationKinds.SLIDE_LEFT,
+  "slide-right-exit": ExitAnimationKinds.SLIDE_RIGHT,
+  "fade-out": ExitAnimationKinds.FADE_OUT,
+  shrink: ExitAnimationKinds.SHRINK,
+};
+
+const displayKindsMapper: Record<string, DonationBarDisplays> = {
+  Horizontal: DonationBarDisplays.HORIZONTAL,
+  Vertical: DonationBarDisplays.VERTICAL,
+  Circle: DonationBarDisplays.CIRCLE,
+  Blur: DonationBarDisplays.BLUR,
+};
+
+const logoAnimationsMapper: Record<string, LogoAnimations> = {
+  none: LogoAnimations.NONE,
+  bounce: LogoAnimations.BOUNCE,
+  rotate: LogoAnimations.ROTATE,
+  blur: LogoAnimations.SHAKE,
+};
+
+const barAnimationsMapper: Record<string, BarDisplayAnimations> = {
+  none: BarDisplayAnimations.NONE,
+  bounce: BarDisplayAnimations.BOUNCE,
+  lighten: BarDisplayAnimations.LIGHTEN,
+  center: BarDisplayAnimations.CENTER,
+};
+
 const updateOverlays = (overlays: any[]): OverlayData[] => {
   return overlays.map((overlay) => {
     return {
@@ -25,7 +66,7 @@ const updateOverlays = (overlays: any[]): OverlayData[] => {
       generatedLink: overlay.generatedLink as string,
       widgets: [
         ...(overlay?.alerts?.variations?.length
-          ? [
+          ? ([
               {
                 _id: mongoose.Types.ObjectId(),
                 isActive: true,
@@ -74,12 +115,18 @@ const updateOverlays = (overlays: any[]): OverlayData[] => {
                           left: variation?.offsetLeft,
                           animation: {
                             enter: {
-                              kind: variation?.image?.animation?.enter?.type,
+                              kind:
+                                animationMapper[
+                                  variation?.image?.animation?.enter?.type
+                                ],
                               duration:
                                 variation?.image?.animation?.enter?.duration,
                             },
                             exit: {
-                              kind: variation?.image?.animation?.exit?.type,
+                              kind:
+                                animationMapper[
+                                  variation?.image?.animation?.exit?.type
+                                ],
                               duration:
                                 variation?.image?.animation?.exit?.duration,
                             },
@@ -104,12 +151,18 @@ const updateOverlays = (overlays: any[]): OverlayData[] => {
                         },
                         animation: {
                           enter: {
-                            kind: variation?.text?.animation?.enter?.type,
+                            kind:
+                              animationMapper[
+                                variation?.text?.animation?.enter?.type
+                              ],
                             duration:
                               variation?.text?.animation?.enter?.duration,
                           },
                           exit: {
-                            kind: variation?.text?.animation?.exit?.type,
+                            kind:
+                              animationMapper[
+                                variation?.text?.animation?.exit?.type
+                              ],
                             duration:
                               variation?.text?.animation?.exit?.duration,
                           },
@@ -119,10 +172,10 @@ const updateOverlays = (overlays: any[]): OverlayData[] => {
                   }
                 ),
               } as AlertsSetWidget,
-            ]
+            ] as AlertsSetWidget[])
           : []),
         ...(overlay?.donationBar
-          ? [
+          ? ([
               {
                 _id: mongoose.Types.ObjectId(),
                 isActive: true,
@@ -132,14 +185,18 @@ const updateOverlays = (overlays: any[]): OverlayData[] => {
                   _id: mongoose.Types.ObjectId(),
                   top: overlay?.donationBar?.offsetTop,
                   left: overlay?.donationBar?.offsetLeft,
+                  width: overlay?.donationBar?.displaySettings?.width,
+                  height: overlay?.donationBar?.displaySettings?.height,
                   display: {
-                    kind: overlay?.donationBar?.displaySettings?.kind,
+                    kind: (displayKindsMapper[
+                      overlay?.donationBar?.displaySettings?.kind
+                    ] || DonationBarDisplays.HORIZONTAL) as DonationBarDisplays,
                     width: overlay?.donationBar?.displaySettings?.width,
                     height: overlay?.donationBar?.displaySettings?.height,
                   },
                   donationBarItemPosition: {
-                    top: overlay?.donationBar?.offsetTop,
-                    left: overlay?.donationBar?.offsetLeft,
+                    top: 0,
+                    left: 0,
                     width: overlay?.donationBar?.displaySettings?.width,
                     height: overlay?.donationBar?.displaySettings?.height,
                   },
@@ -160,10 +217,8 @@ const updateOverlays = (overlays: any[]): OverlayData[] => {
                     },
                   }),
                   text: {
-                    top:
-                      overlay?.donationBar?.donationBarDescription?.offsetTop,
-                    left:
-                      overlay?.donationBar?.donationBarDescription?.offsetLeft,
+                    top: 0,
+                    left: 0,
                     content:
                       overlay?.donationBar?.donationBarDescription?.content,
                     width: overlay?.donationBar?.donationBarDescription?.width,
@@ -193,16 +248,20 @@ const updateOverlays = (overlays: any[]): OverlayData[] => {
                     animation: {
                       enter: {
                         kind:
-                          overlay?.donationBar?.donationBarDescription
-                            ?.animation?.enter?.type,
+                          animationMapper[
+                            overlay?.donationBar?.donationBarDescription
+                              ?.animation?.enter?.type
+                          ],
                         duration:
                           overlay?.donationBar?.donationBarDescription
                             ?.animation?.enter?.duration,
                       },
                       exit: {
                         kind:
-                          overlay?.donationBar?.donationBarDescription
-                            ?.animation?.exit?.type,
+                          animationMapper[
+                            overlay?.donationBar?.donationBarDescription
+                              ?.animation?.exit?.type
+                          ],
                         duration:
                           overlay?.donationBar?.donationBarDescription
                             ?.animation?.exit?.duration,
@@ -226,20 +285,22 @@ const updateOverlays = (overlays: any[]): OverlayData[] => {
                       overlay?.donationBar?.amountToSendPart?.textColor,
                   },
                   reaction: {
-                    audio: {
-                      source: [
-                        {
-                          name:
-                            overlay?.donationBar?.donationReaction?.soundPath,
-                          response:
-                            overlay?.donationBar?.donationReaction?.soundPath,
-                          status: "done",
-                          uid:
-                            overlay?.donationBar?.donationReaction?.soundPath,
-                          url: `${ENV.MEDIAS_GATEWAY}/${overlay?.donationBar?.donationReaction?.soundPath}`,
-                        },
-                      ],
-                    },
+                    ...(overlay?.donationBar?.donationReaction?.soundPath && {
+                      audio: {
+                        source: [
+                          {
+                            name:
+                              overlay?.donationBar?.donationReaction?.soundPath,
+                            response:
+                              overlay?.donationBar?.donationReaction?.soundPath,
+                            status: "done",
+                            uid:
+                              overlay?.donationBar?.donationReaction?.soundPath,
+                            url: `${ENV.MEDIAS_GATEWAY}/${overlay?.donationBar?.donationReaction?.soundPath}`,
+                          },
+                        ],
+                      },
+                    }),
                     duration: overlay?.donationBar?.donationReaction?.duration,
                     fillSentAmount: {
                       color:
@@ -248,18 +309,22 @@ const updateOverlays = (overlays: any[]): OverlayData[] => {
                     },
                     animateLogo: {
                       kind:
-                        overlay?.donationBar?.donationReaction?.animateLogo
-                          ?.kind,
+                        logoAnimationsMapper[
+                          overlay?.donationBar?.donationReaction?.animateLogo
+                            ?.kind
+                        ],
                     },
                     animateBar: {
                       kind:
-                        overlay?.donationBar?.donationReaction
-                          ?.animateBarDisplay?.kind,
+                        barAnimationsMapper[
+                          overlay?.donationBar?.donationReaction
+                            ?.animateBarDisplay?.kind
+                        ],
                     },
                   },
                 },
               } as DonationBarWidget,
-            ]
+            ] as DonationBarWidget[])
           : []),
       ],
     };
@@ -268,15 +333,6 @@ const updateOverlays = (overlays: any[]): OverlayData[] => {
 
 const updateUserDataForV2 = async () => {
   const users = await User.find().lean();
-
-  /**
-   * TO DO
-   *
-   * Update user status (enum changed) :checked:
-   * Encrypt password :checked:
-   * Update overlay data (schema changed)
-   *
-   */
 
   await Promise.all(
     users.map(async (user: UserType) => {
