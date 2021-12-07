@@ -136,7 +136,7 @@ export const addOverlayWidget = async (
     req.body.widgetKind
   );
 
-  res.send(204);
+  res.sendStatus(204);
 };
 
 export interface OverlayWidgetRequestParams {
@@ -172,7 +172,7 @@ export const updateWidgetName = async (
     req.body.widgetName
   );
 
-  res.send(204);
+  res.sendStatus(204);
 };
 
 export interface GetOverlayWidgetsRequestParams {
@@ -200,7 +200,7 @@ export const deleteOverlayWidget = async (
     req.params.widgetId
   );
 
-  res.send(204);
+  res.sendStatus(204);
 };
 
 export interface DuplicateWidgetRequestBody {
@@ -220,7 +220,7 @@ export const duplicateWidget = async (
     req.body.destOverlay
   );
 
-  res.send(204);
+  res.sendStatus(204);
 };
 
 export interface DuplicateVariationRequestBody {
@@ -244,7 +244,7 @@ export const duplicateVariation = async (
     req.body.destWidget
   );
 
-  res.send(204);
+  res.sendStatus(204);
 };
 
 //#endregion

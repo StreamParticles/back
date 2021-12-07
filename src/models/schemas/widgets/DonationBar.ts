@@ -16,9 +16,18 @@ const AmountPart = new mongoose.Schema(
   { _id: false }
 );
 
+const initialSize = {
+  width: 600,
+  height: 60,
+};
+
 export const DonationBarSchema = new mongoose.Schema({
   amountDisplay: { type: String, enum: InBarAmountDisplay },
-  ...position,
+  ...position({
+    ...initialSize,
+    left: 700,
+    top: 500,
+  }),
   display: {
     kind: {
       type: String,
@@ -30,7 +39,7 @@ export const DonationBarSchema = new mongoose.Schema({
     strokeWidth: Number,
   },
   goalAmount: Number,
-  donationBarItemPosition: position,
+  donationBarItemPosition: position(initialSize),
   cursor: {
     source: [MediaSourceSchema],
     scale: Number,

@@ -8,7 +8,7 @@ export const AlertVariationSchema = new mongoose.Schema({
   requiredAmount: { type: Number, required: false, default: 0.01 },
   chances: { type: Number, required: false, default: 1 },
   duration: { type: Number, required: false, default: 10 },
-  ...position,
+  ...position(),
   audio: {
     type: AudioSchema,
     required: false,

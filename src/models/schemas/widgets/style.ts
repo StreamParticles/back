@@ -5,12 +5,16 @@ import {
 } from "@streamparticles/lib";
 import mongoose from "mongoose";
 
-export const position = {
-  width: { type: Number, required: false, default: 200 },
-  height: { type: Number, required: false, default: 200 },
-  left: { type: Number, required: false, default: 0 },
-  top: { type: Number, required: false, default: 0 },
-};
+type PositionFields = "width" | "height" | "left" | "top";
+
+export const position = (
+  compelled?: Partial<Record<PositionFields, number>>
+): Record<PositionFields, Record<string, unknown>> => ({
+  width: { type: Number, default: compelled?.width || 200 },
+  height: { type: Number, default: compelled?.height || 200 },
+  left: { type: Number, default: compelled?.left || 0 },
+  top: { type: Number, default: compelled?.top || 0 },
+});
 
 export const AnimationSchema = new mongoose.Schema(
   {
@@ -43,7 +47,7 @@ export const ImageSchema = new mongoose.Schema(
   {
     source: { type: [MediaSourceSchema], required: false },
     animation: { type: AnimationSchema, required: false },
-    ...position,
+    ...position(),
   },
   { _id: false, timestamps: true }
 );
@@ -87,7 +91,7 @@ export const TextSchema = new mongoose.Schema(
       required: false,
     },
     animation: { type: AnimationSchema, required: false },
-    ...position,
+    ...position(),
   },
   { _id: false, timestamps: true }
 );
