@@ -22,7 +22,11 @@ const initialSize = {
 };
 
 export const DonationBarSchema = new mongoose.Schema({
-  amountDisplay: { type: String, enum: InBarAmountDisplay },
+  amountDisplay: {
+    type: String,
+    enum: InBarAmountDisplay,
+    default: InBarAmountDisplay.EGLD,
+  },
   ...position({
     ...initialSize,
     left: 700,
